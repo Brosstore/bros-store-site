@@ -1,0 +1,2 @@
+import { MessageCircle } from 'lucide-react';
+export default function WhatsAppButton() { return <a href="https://wa.me/5500000000000?text=Olá!%20Quero%20falar%20com%20a%20Bros%20Store." target="_blank" rel="noreferrer" aria-label="Falar pelo WhatsApp" className="fixed bottom-5 right-5 z-50 grid h-[50px] w-[50px] place-items-center rounded-full bg-[#25D366] text-white transition hover:scale-105" style={{ animation: 'pulse-soft 3s ease-in-out infinite' }} title="Fale conosco no WhatsApp"><MessageCircle size={23} fill="currentColor"/></a>; }
