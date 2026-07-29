@@ -3,7 +3,7 @@ import Hero from '../components/Hero';
 import Categories from '../components/Categories';
 import Products from '../components/Products';
 import About from '../components/About';
-import { Gallery, Benefits, SocialProof, FAQ, ContactPremium } from '../components/PremiumDetails';
+import { Gallery, Benefits, FAQ, ContactPremium } from '../components/PremiumDetails';
 import Footer from '../components/Footer';
 import WhatsAppButton from '../components/WhatsAppButton';
 import PremiumBar from '../components/PremiumBar';
@@ -19,7 +19,6 @@ export default function Home() {
       <About />
       <Benefits />
       <Gallery />
-      <SocialProof />
       <FAQ />
       <ContactPremium />
       <Footer />

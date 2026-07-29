@@ -1,11 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 html { scroll-behavior: smooth; background: #080808; }
-body { background: #080808; color: #f7f7f5; font-family: 'Manrope', sans-serif; overflow-x: hidden; }
-.font-mono { font-family: 'Manrope', sans-serif; }
+body { background: #080808; color: #f7f7f5; font-family: var(--font-manrope), sans-serif; overflow-x: hidden; }
+.font-mono { font-family: var(--font-manrope), sans-serif; }
 * { box-sizing: border-box; }
 ::selection { background: #f5c518; color: #080808; }
 @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-12px) } }

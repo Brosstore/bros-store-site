@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 import { ChevronDown, Camera, Mail, MapPin, Send, Star } from 'lucide-react';
 import { useState } from 'react';
 import { siteConfig, whatsappLink } from '../lib/siteConfig';
