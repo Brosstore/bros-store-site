@@ -1,0 +1,2 @@
+'use client';
+export default function ProductError({ reset }) { return <main className="grid min-h-screen place-items-center bg-ink px-5 text-center"><div><p className="eyebrow">Bros Store</p><h1 className="text-5xl font-extrabold tracking-tight sm:text-7xl">ALGO SAIU<br/><span className="text-brand">DO RITMO.</span></h1><p className="mx-auto mt-6 max-w-md text-zinc-400">Não foi possível carregar este produto agora. Tente novamente.</p><button onClick={reset} className="button-primary mt-8">Tentar novamente</button></div></main>; }

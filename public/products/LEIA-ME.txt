@@ -1,0 +1,7 @@
+Coloque aqui as fotos dos seus produtos (ex: camiseta-logo.jpg).
+
+Depois, no arquivo lib/products.js, use o caminho "/products/camiseta-logo.jpg"
+no campo "image" do produto correspondente.
+
+Dica: fotos no formato vertical (proporção 4:5, ex: 1000x1250 pixels)
+ficam com o encaixe perfeito nos cards do site.

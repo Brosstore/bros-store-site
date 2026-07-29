@@ -1,21 +1,32 @@
 import './globals.css';
+import { siteConfig } from '../lib/siteConfig';
+import ProductNavigation from '../components/ProductNavigation';
 
 export const metadata = {
-  title: 'Bros Store | Vista sua atitude.',
-  description: 'Bros Store: moda, streetwear e acessórios para vestir sua personalidade.',
-  keywords: ['Bros Store', 'moda urbana', 'roupas', 'calçados', 'acessórios'],
+  metadataBase: new URL(siteConfig.url),
+  title: `${siteConfig.name} | ${siteConfig.tagline}`,
+  description: siteConfig.description,
+  keywords: ['Bros Store', 'moda urbana', 'streetwear', 'roupas', 'calçados', 'acessórios'],
+  robots: { index: true, follow: true },
   openGraph: {
-    title: 'Bros Store | Vista sua atitude.',
-    description: 'Moda, streetwear e acessórios para vestir sua personalidade.',
+    title: `${siteConfig.name} | ${siteConfig.tagline}`,
+    description: siteConfig.description,
     type: 'website',
     locale: 'pt_BR',
+    url: siteConfig.url,
+    siteName: siteConfig.name,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${siteConfig.name} | ${siteConfig.tagline}`,
+    description: siteConfig.description,
   },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body><ProductNavigation />{children}</body>
     </html>
   );
 }
