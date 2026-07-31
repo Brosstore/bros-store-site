@@ -4,9 +4,9 @@ import { motion } from 'framer-motion';
 
 const reveal = { hidden: { opacity: 0, y: 28 }, visible: { opacity: 1, y: 0 } };
 
-export default function Hero() {
+export default function Hero({ settings }) {
   return <section id="inicio" className="grain relative min-h-screen overflow-hidden bg-charcoal">
-    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=2000&q=90')] bg-cover bg-center bg-fixed opacity-60" />
+    <div className="absolute inset-0 bg-cover bg-center bg-fixed opacity-60" style={{ backgroundImage: `url(${settings?.bannerUrl || 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=2000&q=90'})` }} />
     <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.72),rgba(0,0,0,.45))]" />
     <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,8,.55)_3%,transparent_65%),linear-gradient(0deg,#080808_1%,transparent_40%)]" />
     <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-5 pt-[78px] sm:px-8 lg:px-12">

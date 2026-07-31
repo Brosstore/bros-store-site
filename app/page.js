@@ -8,27 +8,29 @@ import Footer from '../components/Footer';
 import WhatsAppButton from '../components/WhatsAppButton';
 import PremiumBar from '../components/PremiumBar';
 import { getCategories, getFeaturedProducts } from '../lib/catalog/products';
+import { getStoreSettings } from '../lib/storeSettings';
 
 export default async function Home() {
-  const [categories, featuredProducts] = await Promise.all([
+  const [categories, featuredProducts, settings] = await Promise.all([
     getCategories(),
     getFeaturedProducts(),
+    getStoreSettings(),
   ]);
 
   return (
     <main>
-      <Header />
-      <Hero />
+      <Header settings={settings} />
+      <Hero settings={settings} />
       <PremiumBar />
       <Categories categories={categories} />
       <Products products={featuredProducts} />
       <About />
       <Benefits />
-      <Gallery />
+      <Gallery settings={settings} />
       <FAQ />
-      <ContactPremium />
-      <Footer />
-      <WhatsAppButton />
+      <ContactPremium settings={settings} />
+      <Footer settings={settings} />
+      <WhatsAppButton settings={settings} />
     </main>
   );
 }

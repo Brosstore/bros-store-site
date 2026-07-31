@@ -3,12 +3,12 @@
 import Image from 'next/image';
 import { Heart, Minus, PackageCheck, Plus, ShieldCheck, ShoppingBag, Truck, Undo2 } from 'lucide-react';
 import { useState } from 'react';
-import { whatsappLink } from '../lib/siteConfig';
+import { storeWhatsappLink } from '../lib/storeSettings';
 import ProductCard from './ProductCard';
 
 const tabs = ['Descrição completa', 'Tabela de medidas'];
 
-export default function ProductDetail({ product, related }) {
+export default function ProductDetail({ product, related, settings }) {
   const sizes = product.sizes || [];
   const colors = product.colors || [];
   const [image, setImage] = useState(0);
@@ -17,7 +17,7 @@ export default function ProductDetail({ product, related }) {
   const [quantity, setQuantity] = useState(1);
   const [tab, setTab] = useState(0);
   const [favorite, setFavorite] = useState(false);
-  const whatsapp = whatsappLink([`Olá! Quero comprar: ${product.name}.`, size && `Tamanho: ${size}.`, colors.length > 1 && `Cor: ${colors[color]}.`, `Quantidade: ${quantity}.`, `Preço: ${product.price}.`].filter(Boolean).join(' '));
+  const whatsapp = storeWhatsappLink(settings, [`Olá! Quero comprar: ${product.name}.`, size && `Tamanho: ${size}.`, colors.length > 1 && `Cor: ${colors[color]}.`, `Quantidade: ${quantity}.`, `Preço: ${product.price}.`].filter(Boolean).join(' '));
   const content = [
     <p key="description">{product.description} Desenvolvida com materiais selecionados, acabamento durável e atenção aos detalhes que fazem a diferença no seu visual.</p>,
     sizes.length ? <div key="measurements" className="grid max-w-md grid-cols-3 gap-3 text-sm"><span className="font-bold">Tamanho</span><span className="font-bold">Tórax</span><span className="font-bold">Comprimento</span>{sizes.map((value, index) => <div className="contents" key={value}><span>{value}</span><span>{88 + index * 4} cm</span><span>{65 + index * 2} cm</span></div>)}</div> : <p key="measurements">Este produto não possui tabela de medidas.</p>,

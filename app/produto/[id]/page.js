@@ -5,6 +5,7 @@ import {
   getProductBySlug,
   getRelatedProducts,
 } from '../../../lib/catalog/products';
+import { getStoreSettings } from '../../../lib/storeSettings';
 
 // O catálogo é atualizado localmente com frequência; evita páginas estáticas
 // desatualizadas quando novos produtos são adicionados.
@@ -14,4 +15,4 @@ export async function generateStaticParams() { const products = await getAllProd
 
 export async function generateMetadata({ params }) { const { id } = await params; const product = await getProductBySlug(id); return { title: product ? `${product.name} | Bros Store` : 'Produto | Bros Store', description: product?.description }; }
 
-export default async function ProductPage({ params }) { const { id } = await params; const product = await getProductBySlug(id); if (!product) notFound(); return <ProductDetail product={product} related={await getRelatedProducts(product.id)} />; }
+export default async function ProductPage({ params }) { const { id } = await params; const product = await getProductBySlug(id); if (!product) notFound(); const [related, settings] = await Promise.all([getRelatedProducts(product.id), getStoreSettings()]); return <ProductDetail product={product} related={related} settings={settings} />; }
