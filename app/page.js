@@ -7,12 +7,13 @@ import { Gallery, Benefits, FAQ, ContactPremium } from '../components/PremiumDet
 import Footer from '../components/Footer';
 import WhatsAppButton from '../components/WhatsAppButton';
 import PremiumBar from '../components/PremiumBar';
-import { getCategories, getFeaturedProducts } from '../lib/catalog/products';
+import { getFeaturedProducts } from '../lib/catalog/products';
+import { getPublicCategories } from '../lib/categories';
 import { getStoreSettings } from '../lib/storeSettings';
 
 export default async function Home() {
   const [categories, featuredProducts, settings] = await Promise.all([
-    getCategories(),
+    getPublicCategories(),
     getFeaturedProducts(),
     getStoreSettings(),
   ]);
