@@ -13,7 +13,7 @@ export default async function AdminProductsPage({ searchParams }) {
   if (!user) redirect('/admin/login');
   const q = typeof searchParams?.q === 'string' ? searchParams.q.trim() : '';
   const categoria = typeof searchParams?.categoria === 'string' ? searchParams.categoria : '';
-  const success = searchParams?.sucesso === 'criado' ? 'Produto criado com sucesso.' : searchParams?.sucesso === 'atualizado' ? 'Produto atualizado com sucesso.' : '';
+  const success = searchParams?.sucesso === 'criado' ? 'Produto criado com sucesso.' : searchParams?.sucesso === 'atualizado' ? 'Produto atualizado com sucesso.' : searchParams?.sucesso === 'excluido' ? 'Produto excluído com sucesso.' : '';
   let query = supabase.from('products').select('id,slug,name,category_name,category_slug,price_cents,stock,active,featured,product_images(storage_path,position)').order('display_order');
   if (q) query = query.ilike('name', `%${q}%`);
   if (categoria) query = query.eq('category_slug', categoria);

@@ -15,6 +15,30 @@ async function authorized() {
   return supabase;
 }
 
+async function authorizedAdmin() {
+  const supabase = await authorized();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: admin, error } = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Não foi possível validar a permissão administrativa.', error);
+    throw new Error('Não foi possível validar sua permissão administrativa.');
+  }
+  if (!admin) throw new Error('Você não possui permissão para excluir produtos.');
+  return supabase;
+}
+
+function storageObjectIsMissing(error) {
+  const status = error?.statusCode || error?.status;
+  return status === 404 || /not found|não encontrado|does not exist/i.test(error?.message || '');
+}
+
 async function reorder(supabase, productId, imageIds) {
   for (const [index, id] of imageIds.entries()) {
     await supabase.from('product_images').update({ position: index + 1000 }).eq('id', id).eq('product_id', productId);
@@ -131,5 +155,89 @@ export async function deleteProductImage({ productId, imageId }) {
     return { success: true };
   } catch (error) {
     return { error: error.message || 'Falha ao excluir imagem.' };
+  }
+}
+
+export async function deleteProduct(productId) {
+  try {
+    if (typeof productId !== 'string' || !productId) return { error: 'Produto inválido.' };
+
+    const supabase = await authorizedAdmin();
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id, slug')
+      .eq('id', productId)
+      .maybeSingle();
+
+    if (productError) {
+      console.error('Erro ao buscar produto para exclusão.', productError);
+      return { error: 'Não foi possível localizar o produto para exclusão.' };
+    }
+    if (!product) return { error: 'Produto não encontrado. Ele pode já ter sido excluído.' };
+
+    const { data: images, error: imagesError } = await supabase
+      .from('product_images')
+      .select('id, storage_path')
+      .eq('product_id', productId);
+
+    if (imagesError) {
+      console.error('Erro ao buscar imagens do produto para exclusão.', imagesError);
+      return { error: 'Não foi possível carregar as imagens do produto.' };
+    }
+
+    const warnings = [];
+    const storagePaths = [...new Set((images || []).map((image) => image.storage_path).filter(Boolean))];
+
+    for (const storagePath of storagePaths) {
+      const { error: storageError } = await supabase.storage.from('product-images').remove([storagePath]);
+      if (!storageError) continue;
+
+      if (storageObjectIsMissing(storageError)) {
+        const warning = `Arquivo já inexistente no Storage: ${storagePath}`;
+        warnings.push(warning);
+        console.warn(warning);
+        continue;
+      }
+
+      console.error('Falha parcial ao remover arquivo do Storage.', { storagePath, storageError });
+      return {
+        error: 'Não foi possível remover todas as imagens do Storage. O produto não foi excluído.',
+        warnings,
+      };
+    }
+
+    const { error: imageDeleteError } = await supabase
+      .from('product_images')
+      .delete()
+      .eq('product_id', productId);
+    if (imageDeleteError) {
+      console.error('Falha ao apagar registros de imagens do produto.', imageDeleteError);
+      return {
+        error: 'As imagens foram processadas, mas não foi possível remover seus registros. O produto não foi excluído.',
+        warnings,
+      };
+    }
+
+    const { data: deletedProduct, error: deleteError } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId)
+      .select('id')
+      .maybeSingle();
+    if (deleteError || !deletedProduct) {
+      console.error('Falha ao apagar produto.', deleteError || new Error('Nenhuma linha removida.'));
+      return {
+        error: 'Os registros de imagens foram removidos, mas não foi possível excluir o produto.',
+        warnings,
+      };
+    }
+
+    revalidatePath('/admin/produtos');
+    revalidatePath('/produtos');
+    revalidatePath(`/produto/${product.slug}`);
+    return { success: true, warnings };
+  } catch (error) {
+    console.error('Erro inesperado durante a exclusão do produto.', error);
+    return { error: error.message || 'Não foi possível excluir o produto.' };
   }
 }
