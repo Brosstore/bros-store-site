@@ -9,7 +9,6 @@ const maxSize = 5 * 1024 * 1024;
 async function requireAdmin() {
   const supabase = createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
-  console.info('[settings] usuário autenticado', { userId: user?.id || null, userError: userError?.message || null });
   if (userError || !user) throw new Error('Sua sessão expirou. Entre novamente.');
 
   const { data: admin, error: adminError } = await supabase
@@ -17,7 +16,6 @@ async function requireAdmin() {
     .select('user_id')
     .eq('user_id', user.id)
     .maybeSingle();
-  console.info('[settings] consulta admin_users', { userId: user.id, admin: Boolean(admin), adminError: adminError?.message || null });
   if (adminError || !admin) throw new Error('Você não possui permissão para alterar as configurações.');
   return supabase;
 }
@@ -55,7 +53,6 @@ export async function saveStoreSettings(formData) {
       state: text(formData, 'state') || null,
       opening_hours: text(formData, 'openingHours') || null,
     };
-    console.info('[settings] dados recebidos', { storeName: values.store_name, slogan: values.slogan, hasDescription: Boolean(values.description), hasWhatsapp: Boolean(values.whatsapp), hasEmail: Boolean(values.email) });
     if (!values.description || !values.whatsapp || !values.email) throw new Error('Preencha nome, slogan, descrição, WhatsApp e e-mail.');
 
     const supabase = await requireAdmin();
@@ -65,7 +62,6 @@ export async function saveStoreSettings(formData) {
       .limit(1)
       .maybeSingle();
     if (currentError) throw new Error(currentError.message || 'Não foi possível carregar as configurações.');
-    console.info('[settings] registro atual', { settingsId: current?.id ?? null });
 
     const logoPath = await uploadAsset(supabase, formData.get('logo'), 'logo');
     if (logoPath) uploadedPaths.push(logoPath);
@@ -81,7 +77,6 @@ export async function saveStoreSettings(formData) {
         .eq('id', current.id)
         .select('*')
         .maybeSingle();
-      console.info('[settings] resultado update', { settingsId: current.id, updated: Boolean(data), error: error?.message || null });
       if (error || !data) throw new Error(error?.message || 'Nenhuma configuração foi atualizada.');
       saved = data;
     } else {
@@ -90,7 +85,6 @@ export async function saveStoreSettings(formData) {
         .insert({ id: true, ...record })
         .select('*')
         .maybeSingle();
-      console.info('[settings] resultado insert', { inserted: Boolean(data), error: error?.message || null });
       if (error || !data) throw new Error(error?.message || 'Não foi possível criar as configurações.');
       saved = data;
     }
@@ -100,7 +94,6 @@ export async function saveStoreSettings(formData) {
       .select('id, store_name, slogan, description, whatsapp, email')
       .eq('id', saved.id)
       .maybeSingle();
-    console.info('[settings] confirmação de persistência', { settingsId: saved.id, persisted: Boolean(persisted), error: persistedError?.message || null });
     if (persistedError || !persisted || persisted.store_name !== values.store_name) throw new Error(persistedError?.message || 'Não foi possível confirmar o salvamento das configurações.');
 
     const warnings = [];
