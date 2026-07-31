@@ -7,15 +7,21 @@ import { Gallery, Benefits, FAQ, ContactPremium } from '../components/PremiumDet
 import Footer from '../components/Footer';
 import WhatsAppButton from '../components/WhatsAppButton';
 import PremiumBar from '../components/PremiumBar';
+import { getCategories, getFeaturedProducts } from '../lib/catalog/products';
 
-export default function Home() {
+export default async function Home() {
+  const [categories, featuredProducts] = await Promise.all([
+    getCategories(),
+    getFeaturedProducts(),
+  ]);
+
   return (
     <main>
       <Header />
       <Hero />
       <PremiumBar />
-      <Categories />
-      <Products />
+      <Categories categories={categories} />
+      <Products products={featuredProducts} />
       <About />
       <Benefits />
       <Gallery />
