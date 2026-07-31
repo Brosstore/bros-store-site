@@ -1,0 +1,5 @@
+import { redirect } from 'next/navigation';
+import { createClient } from '../../../../lib/supabase/server';
+import ProductForm from '../ProductForm';
+export const metadata = { title: 'Novo produto | Painel Bros Store', robots: { index: false, follow: false } };
+export default async function NewProductPage() { const supabase = createClient(); const { data: { user } } = await supabase.auth.getUser(); if (!user) redirect('/admin/login'); return <main className="min-h-screen bg-ink px-5 py-8 text-white sm:px-8 lg:px-12"><div className="mx-auto max-w-4xl"><header className="border-b border-white/10 pb-7"><a href="/admin/produtos" className="text-xl font-extrabold tracking-[.08em]">BROS<span className="ml-1 text-brand">STORE</span></a><p className="mt-2 text-sm text-zinc-400">Painel / Produtos / Novo</p></header><section className="py-10"><p className="eyebrow">Cadastro</p><h1 className="text-4xl font-extrabold tracking-tight">Novo produto</h1><p className="mt-3 text-sm text-zinc-400">As imagens poderão ser adicionadas depois.</p><ProductForm /></section></div></main>; }
