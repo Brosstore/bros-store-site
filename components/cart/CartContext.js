@@ -32,6 +32,7 @@ export function CartProvider({ children, settings }) {
     },
     updateQuantity: (key, quantity) => setItems((current) => quantity > 0 ? current.map((item) => item.key === key ? { ...item, quantity } : item) : current.filter((item) => item.key !== key)),
     removeItem: (key) => setItems((current) => current.filter((item) => item.key !== key)),
+    clearCart: () => setItems([]),
   }), [items, isOpen, hydrated]);
   return <CartContext.Provider value={value}>{children}<CartDrawer settings={settings}/></CartContext.Provider>;
 }

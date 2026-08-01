@@ -27,12 +27,12 @@ export async function middleware(request) {
   const path = request.nextUrl.pathname;
   const isAdminLoginPage = path === '/admin/login';
   const isCustomerLoginPage = path === '/login';
-  const isProtectedArea = path.startsWith('/admin/') || path === '/minha-conta';
+  const isProtectedArea = path.startsWith('/admin/') || path === '/minha-conta' || path === '/checkout';
 
   if (!user && isProtectedArea && !isAdminLoginPage) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = path.startsWith('/admin/') ? '/admin/login' : '/login';
-    loginUrl.searchParams.set('redirected', '1');
+    loginUrl.searchParams.set('next', `${path}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -54,5 +54,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/minha-conta', '/login'],
+  matcher: ['/admin/:path*', '/minha-conta', '/checkout', '/login'],
 };

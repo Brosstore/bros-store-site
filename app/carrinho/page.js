@@ -8,5 +8,5 @@ export const metadata = { title: 'Carrinho | Bros Store', description: 'Revise o
 
 export default async function CartRoute() {
   const settings = await getStoreSettings();
-  return <main><Header settings={settings}/><div className="pt-[78px]"><CartPage settings={settings}/></div><Footer settings={settings}/><WhatsAppButton settings={settings}/></main>;
+  return <main><Header settings={settings}/><div className="pt-[78px]"><CartPage /></div><Footer settings={settings}/><WhatsAppButton settings={settings}/></main>;
 }
