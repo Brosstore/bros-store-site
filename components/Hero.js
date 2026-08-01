@@ -1,21 +1,6 @@
 'use client';
-import { ArrowDown, ArrowUpRight, Sparkles } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowDown, ArrowUpRight, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-const reveal = { hidden: { opacity: 0, y: 28 }, visible: { opacity: 1, y: 0 } };
-
-export default function Hero({ settings }) {
-  return <section id="inicio" className="grain relative min-h-screen overflow-hidden bg-charcoal">
-    <div className="absolute inset-0 bg-cover bg-center bg-fixed opacity-60" style={{ backgroundImage: `url(${settings?.bannerUrl || 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=2000&q=90'})` }} />
-    <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.72),rgba(0,0,0,.45))]" />
-    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,8,.55)_3%,transparent_65%),linear-gradient(0deg,#080808_1%,transparent_40%)]" />
-    <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-5 pt-[78px] sm:px-8 lg:px-12">
-      <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: .13 } } }} className="max-w-4xl pb-5 sm:pb-0">
-        <motion.p variants={reveal} transition={{ duration: .65 }} className="eyebrow flex items-center gap-2"><Sparkles size={13}/> Nova coleção • 2026</motion.p>
-        <motion.h1 variants={reveal} transition={{ duration: .7, ease: [0.22,1,.36,1] }} className="mt-5 text-[3.6rem] font-extrabold leading-[.84] tracking-[-.07em] sm:text-8xl lg:text-9xl xl:text-[8.5rem]">VISTA SUA<br/><span className="mt-5 inline-block font-bold text-brand drop-shadow-[0_6px_20px_rgba(245,197,24,.22)]">ATITUDE.</span></motion.h1>
-        <motion.div variants={reveal} transition={{ duration: .7, ease: [0.22,1,.36,1] }} className="mt-10 flex max-w-xl flex-wrap items-center gap-4"><p className="max-w-sm text-sm leading-6 text-zinc-200 sm:text-base">Roupas, calçados e acessórios para quem vive com personalidade, estilo e atitude.</p><a className="button-primary" href="#produtos">Comprar agora <ArrowUpRight size={16}/></a><a className="button-dark" href="#sobre">Conheça a Bros</a></motion.div>
-      </motion.div>
-      <a href="#categorias" className="absolute bottom-8 right-5 hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[.2em] text-zinc-300 sm:flex sm:right-8 lg:right-12">Descubra a Bros <ArrowDown size={15} className="text-brand"/></a>
-    </div>
-  </section>;
-}
+const reveal={hidden:{opacity:0,y:24},visible:{opacity:1,y:0}};
+export default function Hero({ settings }) { const image=settings?.bannerUrl||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=2000&q=90'; return <section id="inicio" className="grain relative isolate min-h-[760px] overflow-hidden bg-charcoal sm:min-h-screen"><Image src={image} alt="Coleção streetwear da Bros Store" fill priority sizes="100vw" className="-z-20 object-cover object-center"/><div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(8,8,8,.92)_0%,rgba(8,8,8,.64)_48%,rgba(8,8,8,.3)_100%)]"/><div className="absolute inset-0 -z-10 bg-[linear-gradient(0deg,#080808_0%,transparent_42%)]"/><div className="relative mx-auto flex min-h-[760px] max-w-7xl items-center px-5 pt-[78px] sm:min-h-screen sm:px-8 lg:px-12"><motion.div initial="hidden" animate="visible" variants={{visible:{transition:{staggerChildren:.12}}}} className="max-w-3xl"><motion.p variants={reveal} className="eyebrow flex items-center gap-2"><Sparkles size={13}/> Bros Store · Streetwear</motion.p><motion.h1 variants={reveal} transition={{duration:.65}} className="mt-5 text-[3.8rem] font-extrabold leading-[.84] tracking-[-.07em] sm:text-8xl lg:text-9xl">VISTA SUA<br/><span className="mt-5 inline-block text-brand">ATITUDE.</span></motion.h1><motion.p variants={reveal} className="mt-8 max-w-lg text-base leading-7 text-zinc-200 sm:text-lg">Roupas, calçados e acessórios para quem vive com personalidade, estilo e atitude.</motion.p><motion.div variants={reveal} className="mt-8 flex flex-wrap gap-3"><a className="button-primary" href="/produtos">Comprar agora <ArrowUpRight size={16}/></a><a className="button-dark" href="#categorias">Ver categorias</a></motion.div><motion.div variants={reveal} className="mt-10 grid max-w-xl grid-cols-3 gap-2 text-[10px] font-bold uppercase tracking-wide text-zinc-200 sm:gap-5"><span className="flex items-center gap-2"><ShieldCheck size={15} className="text-brand"/>Compra segura</span><span>PIX disponível</span><a className="flex items-center gap-2 hover:text-brand" href={`https://wa.me/${settings?.whatsapp || ''}`} target="_blank" rel="noreferrer"><MessageCircle size={15} className="text-brand"/>WhatsApp</a></motion.div></motion.div><a href="#categorias" className="absolute bottom-8 right-5 hidden items-center gap-3 font-mono text-[10px] uppercase tracking-[.2em] text-zinc-300 sm:flex sm:right-8 lg:right-12">Descubra a Bros <ArrowDown size={15} className="text-brand"/></a></div></section>; }

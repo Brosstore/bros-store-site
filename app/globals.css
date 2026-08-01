@@ -4,6 +4,7 @@
 
 html { scroll-behavior: smooth; background: #080808; }
 body { background: #080808; color: #f7f7f5; font-family: var(--font-manrope), sans-serif; overflow-x: hidden; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #F5C518; outline-offset: 3px; }
 .font-mono { font-family: var(--font-manrope), sans-serif; }
 * { box-sizing: border-box; }
 ::selection { background: #f5c518; color: #080808; }
@@ -24,3 +25,4 @@ body { background: #080808; color: #f7f7f5; font-family: var(--font-manrope), sa
   .button-dark { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white bg-black/20 px-6 py-4 text-xs font-bold uppercase tracking-[.12em] text-white backdrop-blur transition duration-300 hover:scale-[1.03] hover:bg-white hover:text-ink; }
   .glass { @apply border border-white/10 bg-white/[.035] backdrop-blur-md; }
 }
+@media (prefers-reduced-motion: reduce) { *,::before,::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
