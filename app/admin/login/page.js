@@ -2,18 +2,5 @@ import { redirect } from 'next/navigation';
 import { createClient } from '../../../lib/supabase/server';
 import LoginForm from './LoginForm';
 
-export const metadata = {
-  title: 'Entrar no painel | Bros Store',
-  robots: { index: false, follow: false },
-};
-
-export default async function AdminLoginPage() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) redirect('/admin/dashboard');
-
-  return <main className="grid min-h-screen place-items-center bg-ink px-5 py-10 text-white"><section className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8"><a href="/" className="text-xl font-extrabold tracking-[.08em]">BROS<span className="ml-1 text-brand">STORE</span></a><p className="eyebrow mt-10">Painel administrativo</p><h1 className="text-3xl font-extrabold tracking-tight">Acesse sua conta.</h1><p className="mt-3 text-sm leading-6 text-zinc-400">Gerencie o catálogo da Bros Store com segurança.</p><LoginForm /></section></main>;
-}
+export const metadata = { title: 'Entrar no painel | Bros Store', robots: { index: false, follow: false } };
+export default async function AdminLoginPage({ searchParams }) { const supabase = createClient(); const { data: { user } } = await supabase.auth.getUser(); if (user) { const { data: admin } = await supabase.from('admin_users').select('user_id').eq('user_id', user.id).maybeSingle(); if (admin) { const next = typeof searchParams?.next === 'string' ? searchParams.next : ''; redirect(next.startsWith('/admin') && !next.startsWith('//') ? next : '/admin/dashboard'); } } return <main className="grid min-h-screen place-items-center bg-ink px-5 py-10 text-white"><section className="glass w-full max-w-md rounded-2xl p-6 shadow-2xl sm:p-8"><a href="/" className="text-xl font-extrabold tracking-[.08em]">BROS<span className="ml-1 text-brand">STORE</span></a><p className="eyebrow mt-10">Painel administrativo</p><h1 className="text-3xl font-extrabold tracking-tight">Acesse sua conta.</h1><p className="mt-3 text-sm leading-6 text-zinc-400">Gerencie o catálogo da Bros Store com segurança.</p><LoginForm /></section></main>; }

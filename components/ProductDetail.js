@@ -23,10 +23,16 @@ export default function ProductDetail({ product, related, settings }) {
 
   useEffect(() => { if (!notice) return undefined; const timeout = window.setTimeout(() => setNotice(''), 3200); return () => window.clearTimeout(timeout); }, [notice]);
   const selectedColor = color === null ? '' : colors[color] || '';
+  const selectedVariant = (product.inventoryVariants || []).find((variant) => variant.size === size && variant.color === selectedColor);
+  const availableQuantity = selectedVariant ? selectedVariant.quantity : product.stock;
+  const unavailable = product.isAvailable === false || (selectedVariant && selectedVariant.quantity < quantity);
   const whatsapp = storeWhatsappLink(settings, [`Olá! Quero comprar: ${product.name}.`, size && `Tamanho: ${size}.`, selectedColor && `Cor: ${selectedColor}.`, `Quantidade: ${quantity}.`, `Preço: ${product.price}.`].filter(Boolean).join(' '));
   const addToCart = () => {
+    if (product.isAvailable === false) { setNotice('Produto indisponível no momento.'); return; }
     if (sizes.length && !size) { setNotice('Selecione um tamanho para continuar.'); return; }
     if (colors.length && color === null) { setNotice('Selecione uma cor para continuar.'); return; }
+    if ((product.inventoryVariants || []).length && (!selectedVariant || selectedVariant.quantity < quantity)) { setNotice('Esta variação não possui estoque suficiente.'); return; }
+    if (availableQuantity !== null && availableQuantity !== undefined && availableQuantity < quantity) { setNotice('Estoque insuficiente para esta quantidade.'); return; }
     addItem(product, { selectedSize: size, selectedColor, quantity });
     setNotice('Produto adicionado ao carrinho.');
   };

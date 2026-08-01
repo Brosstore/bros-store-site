@@ -6,6 +6,7 @@ import { getStoreSettings } from '../../lib/storeSettings';
 import { createClient } from '../../lib/supabase/server';
 import AccountManager from './AccountManager';
 import CustomerOrders from '../../components/orders/CustomerOrders';
+import CustomerLogoutButton from '../../components/CustomerLogoutButton';
 import { getOrdersByCustomer } from '../../lib/orders';
 
 export const metadata = { title: 'Minha conta | Bros Store', description: 'Gerencie seus dados e endereços.', robots: { index: false, follow: false } };
@@ -20,5 +21,5 @@ export default async function AccountPage() {
     getStoreSettings(),
     getOrdersByCustomer(),
   ]);
-  return <main><Header settings={settings}/><div className="pt-[78px]"><AccountManager user={user} profile={profile || { nome: user.user_metadata?.nome || '', sobrenome: user.user_metadata?.sobrenome || '', telefone: user.user_metadata?.telefone || '' }} addresses={addresses || []}/><CustomerOrders orders={orders}/></div><Footer settings={settings}/><WhatsAppButton settings={settings}/></main>;
+  return <main><Header settings={settings}/><div className="pt-[78px]"><div className="section flex justify-end pb-0 pt-6"><CustomerLogoutButton /></div><AccountManager user={user} profile={profile || { nome: user.user_metadata?.nome || '', sobrenome: user.user_metadata?.sobrenome || '', telefone: user.user_metadata?.telefone || '' }} addresses={addresses || []}/><CustomerOrders orders={orders}/></div><Footer settings={settings}/><WhatsAppButton settings={settings}/></main>;
 }
