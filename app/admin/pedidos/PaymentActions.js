@@ -1,0 +1,4 @@
+'use client';
+import { useState } from 'react';
+import { updatePaymentStatus } from './actions';
+export default function PaymentActions({ orderId }) { const [message, setMessage] = useState(''); const [loading, setLoading] = useState(false); async function run(status) { setLoading(true); const result = await updatePaymentStatus(orderId, status); setMessage(result.error || result.success); setLoading(false); } return <div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={loading} onClick={() => run('pago')} className="button-primary px-4 py-2 text-xs disabled:opacity-60">Confirmar pagamento</button><button type="button" disabled={loading} onClick={() => run('recusado')} className="button-dark px-4 py-2 text-xs disabled:opacity-60">Recusar comprovante</button>{message && <p role="status" className="w-full text-sm text-brand">{message}</p>}</div>; }

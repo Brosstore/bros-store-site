@@ -52,6 +52,11 @@ export async function saveStoreSettings(formData) {
       city: text(formData, 'city') || null,
       state: text(formData, 'state') || null,
       opening_hours: text(formData, 'openingHours') || null,
+      pix_key: text(formData, 'pixKey') || null,
+      pix_key_type: text(formData, 'pixKeyType') || null,
+      pix_receiver_name: text(formData, 'pixReceiverName') || null,
+      pix_city: text(formData, 'pixCity') || null,
+      pix_instructions: text(formData, 'pixInstructions') || null,
     };
     if (!values.description || !values.whatsapp || !values.email) throw new Error('Preencha nome, slogan, descrição, WhatsApp e e-mail.');
 
