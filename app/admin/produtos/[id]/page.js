@@ -20,7 +20,8 @@ export default async function EditProductPage({ params }) {
     .from('products')
     .select(`
       id, name, slug, category_slug, category_name, brand, description,
-      price_cents, old_price_cents, stock, badge, featured, active, sizes, colors,
+      price_cents, old_price_cents, stock, badge, featured, featured_home, new_arrival,
+      promotion_home, hero_feature, display_order, active, sizes, colors,
       product_images(id, storage_path, position)
     `)
     .eq('id', params.id)

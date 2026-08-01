@@ -6,8 +6,8 @@ import { motion } from 'framer-motion';
 
 const reveal = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0 } };
 
-export default function Hero({ settings }) {
-  const image = settings?.bannerUrl || 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=2000&q=90';
+export default function Hero({ settings, heroProduct }) {
+  const image = settings?.bannerUrl || heroProduct?.images?.[0] || 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=2000&q=90';
   const titleLines = (settings?.homeTitle || 'VISTA SUA\nATITUDE.').split(/\r?\n/).filter(Boolean);
   const titleLead = titleLines.slice(0, -1).join(' ');
   const titleAccent = titleLines.at(-1) || 'ATITUDE.';
@@ -31,6 +31,7 @@ export default function Hero({ settings }) {
             <a className="button-primary" href={settings?.homePrimaryCtaUrl || '/produtos'}>{settings?.homePrimaryCtaLabel || 'Comprar agora'} <ArrowUpRight size={16} /></a>
             <a className="button-dark" href={settings?.homeSecondaryCtaUrl || '/#categorias'}>{settings?.homeSecondaryCtaLabel || 'Ver categorias'}</a>
           </motion.div>
+          {heroProduct && <motion.a variants={reveal} href={`/produto/${heroProduct.id}`} className="mt-6 inline-flex items-center gap-3 rounded-xl border border-white/15 bg-black/30 px-4 py-3 text-left transition hover:border-brand hover:bg-black/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"><span className="text-[10px] font-bold uppercase tracking-[.18em] text-brand">No Hero</span><span className="text-sm font-bold text-white">{heroProduct.name}</span><ArrowUpRight size={15} className="text-brand" /></motion.a>}
           <motion.div variants={reveal} className="mt-10 grid max-w-xl grid-cols-3 gap-2 text-[10px] font-bold uppercase tracking-wide text-zinc-200 sm:gap-5">
             <span className="flex items-center gap-2"><ShieldCheck size={15} className="text-brand" />Compra segura</span>
             <span>PIX disponível</span>
