@@ -19,10 +19,9 @@ export default async function ProductsPage({ searchParams }) {
   const requestedCategory = typeof searchParams?.categoria === 'string' ? searchParams.categoria : '';
   const activeCategory = filters.some((filter) => filter.value === requestedCategory) ? requestedCategory : '';
   const [products, settings] = await Promise.all([getAllProducts(), getStoreSettings()]);
-  const visibleProducts = filterProductsByCategory(products, activeCategory);
   const visibleFilters = filters.filter(
     (filter) => !filter.value || filterProductsByCategory(products, filter.value).length > 0
   );
 
-  return <main><Header settings={settings} /><div className="pt-[78px]"><Catalog activeCategory={activeCategory} visibleFilters={visibleFilters} visibleProducts={visibleProducts} /></div><Footer settings={settings} /><WhatsAppButton settings={settings} /></main>;
+  return <main><Header settings={settings} /><div className="pt-[78px]"><Catalog activeCategory={activeCategory} visibleFilters={visibleFilters} visibleProducts={products} /></div><Footer settings={settings} /><WhatsAppButton settings={settings} /></main>;
 }

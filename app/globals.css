@@ -24,5 +24,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .button-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-6 py-4 text-xs font-extrabold uppercase tracking-[.12em] text-ink shadow-[0_10px_24px_rgba(245,197,24,.18)] transition duration-300 hover:scale-[1.03] hover:bg-yellow-300 hover:shadow-glow; }
   .button-dark { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white bg-black/20 px-6 py-4 text-xs font-bold uppercase tracking-[.12em] text-white backdrop-blur transition duration-300 hover:scale-[1.03] hover:bg-white hover:text-ink; }
   .glass { @apply border border-white/10 bg-white/[.035] backdrop-blur-md; }
+  .filter-select { @apply min-w-0 rounded-lg border border-white/15 bg-black/30 px-3 py-2.5 text-xs font-bold text-zinc-200 outline-none focus:border-brand; }
 }
 @media (prefers-reduced-motion: reduce) { *,::before,::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }

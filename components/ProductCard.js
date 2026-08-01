@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { ArrowUpRight, Heart } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 export default function ProductCard({ product, compact = false }) {
   const imageClass = compact
@@ -13,7 +13,6 @@ export default function ProductCard({ product, compact = false }) {
       {product.images?.[0] ? <Image src={product.images[0]} alt={product.name} fill sizes="(max-width: 420px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-contain p-2 transition duration-700 group-hover:scale-105" /> : <div className="grid h-full place-items-center px-6 text-center text-sm font-bold text-zinc-500">Imagem do produto indisponível</div>}
       {product.badge && <span className="absolute left-4 top-4 rounded-md bg-brand px-2.5 py-1.5 font-mono text-[9px] font-extrabold tracking-wider text-ink">{product.badge}</span>}
       {product.isAvailable === false && <span className="absolute inset-x-4 bottom-4 rounded-lg bg-black/80 px-3 py-2 text-center text-[10px] font-extrabold uppercase tracking-wider text-white backdrop-blur">Produto indisponível</span>}
-      {!compact && <span aria-hidden="true" className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-black/35 opacity-0 backdrop-blur transition duration-300 group-hover:opacity-100"><Heart size={16}/></span>}
     </a>
     <div className="p-5">
       <p className="mb-2 text-[10px] font-bold uppercase tracking-[.14em] text-zinc-500">{product.brand || product.category}</p>
