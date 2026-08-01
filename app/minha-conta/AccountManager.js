@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, Edit3, LoaderCircle, MapPin, Plus, Trash2, UserRound } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { changePassword, deleteAddress, saveAddress, saveProfile, setPrimaryAddress } from './actions';
 
 const blankAddress = { apelido: '', destinatario: '', cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', principal: false };
@@ -9,6 +9,7 @@ function Notice({ result }) { if (!result) return null; return <p role={result.e
 
 export default function AccountManager({ user, profile, addresses }) {
   const [profileData, setProfileData] = useState(profile); const [profileResult, setProfileResult] = useState(null); const [passwordResult, setPasswordResult] = useState(null); const [addressResult, setAddressResult] = useState(null); const [editingAddress, setEditingAddress] = useState(null); const [saving, setSaving] = useState('');
+  useEffect(() => { const title = [...document.querySelectorAll('h2')].find((item) => item.textContent === 'MEUS ENDEREÇOS'); title?.parentElement?.parentElement?.setAttribute('id', 'enderecos'); }, []);
   async function submitProfile(event) { event.preventDefault(); setSaving('profile'); const result = await saveProfile(new FormData(event.currentTarget)); setProfileResult(result); setSaving(''); }
   async function submitPassword(event) { event.preventDefault(); const form = event.currentTarget; setSaving('password'); try { const result = await changePassword(new FormData(form)); setPasswordResult(result); if (result.success) form.reset(); } finally { setSaving(''); } }
   async function submitAddress(event) { event.preventDefault(); setSaving('address'); const result = await saveAddress(new FormData(event.currentTarget)); setAddressResult(result); if (result.success) setEditingAddress(null); setSaving(''); }
