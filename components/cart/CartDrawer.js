@@ -1,0 +1,28 @@
+'use client';
+
+import Image from 'next/image';
+import { Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
+import { storeWhatsappLink } from '../../lib/storeSettings';
+import { useCart } from './CartContext';
+import { buildCartWhatsappMessage, formatCartPrice } from './cartUtils';
+
+function CartItem({ item }) {
+  const { updateQuantity, removeItem } = useCart();
+  return <li className="flex gap-3 border-b border-white/10 py-4">
+    <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-900">
+      {item.image && <Image src={item.image} alt={item.name} fill sizes="64px" className="object-contain" />}
+    </div>
+    <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{item.name}</p>
+      {(item.selectedSize || item.selectedColor) && <p className="mt-1 text-xs text-zinc-500">{[item.selectedSize && `Tam. ${item.selectedSize}`, item.selectedColor && `Cor ${item.selectedColor}`].filter(Boolean).join(' · ')}</p>}
+      <p className="mt-1 text-sm font-extrabold text-brand">{formatCartPrice(item.price_cents)}</p>
+      <div className="mt-3 flex items-center justify-between"><div className="flex items-center rounded-lg border border-white/15"><button type="button" aria-label={`Diminuir quantidade de ${item.name}`} onClick={() => updateQuantity(item.key, item.quantity - 1)} className="grid h-8 w-8 place-items-center hover:text-brand"><Minus size={14}/></button><span className="w-7 text-center text-xs font-bold">{item.quantity}</span><button type="button" aria-label={`Aumentar quantidade de ${item.name}`} onClick={() => updateQuantity(item.key, item.quantity + 1)} className="grid h-8 w-8 place-items-center hover:text-brand"><Plus size={14}/></button></div><button type="button" aria-label={`Remover ${item.name}`} onClick={() => removeItem(item.key)} className="p-2 text-zinc-500 transition hover:text-red-400"><Trash2 size={15}/></button></div>
+    </div>
+  </li>;
+}
+
+export default function CartDrawer({ settings }) {
+  const { isOpen, closeCart, items, subtotalCents } = useCart();
+  if (!isOpen) return null;
+  const checkout = storeWhatsappLink(settings, buildCartWhatsappMessage(items));
+  return <div className="fixed inset-0 z-[80]" role="presentation"><button type="button" aria-label="Fechar carrinho" onClick={closeCart} className="absolute inset-0 bg-black/70 backdrop-blur-sm"/><aside role="dialog" aria-modal="true" aria-label="Carrinho de compras" className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-[#0d0d0d] px-5 pb-6 pt-6 shadow-[-30px_0_80px_rgba(0,0,0,.55)] sm:px-7"><div className="flex items-center justify-between border-b border-white/10 pb-5"><div><p className="eyebrow mb-1">Seu pedido</p><h2 className="text-xl font-extrabold">CARRINHO</h2></div><button type="button" aria-label="Fechar carrinho" onClick={closeCart} className="grid h-10 w-10 place-items-center rounded-lg border border-white/15 transition hover:border-brand hover:text-brand"><X size={19}/></button></div>{items.length ? <><ul className="min-h-0 flex-1 overflow-y-auto">{items.map((item) => <CartItem key={item.key} item={item}/>)}</ul><div className="border-t border-white/10 pt-5"><div className="mb-5 flex items-center justify-between"><span className="text-sm text-zinc-400">Subtotal</span><strong className="text-xl text-brand">{formatCartPrice(subtotalCents)}</strong></div><div className="grid gap-3"><a href="/carrinho" onClick={closeCart} className="button-dark">Ver carrinho</a><a href={checkout} target="_blank" rel="noreferrer" className="button-primary" onClick={closeCart}>Finalizar compra</a></div></div></> : <div className="flex flex-1 flex-col items-center justify-center text-center"><ShoppingBag size={35} className="text-brand"/><h3 className="mt-5 text-lg font-extrabold">Seu carrinho está vazio.</h3><p className="mt-2 max-w-xs text-sm leading-6 text-zinc-500">Encontre peças que combinam com a sua atitude.</p><a href="/produtos" onClick={closeCart} className="button-primary mt-6">Ver produtos</a></div>}</aside></div>;
+}
