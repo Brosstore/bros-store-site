@@ -1,0 +1,2 @@
+const labels={pendente:'Pendente',aguardando_confirmacao:'Aguardando confirmação',pago:'Pago',recusado:'Recusado'};
+export default function PaymentStatusBadge({status}){const tone=status==='pago'?'border-emerald-400/30 bg-emerald-400/10 text-emerald-200':status==='recusado'?'border-red-400/30 bg-red-400/10 text-red-200':status==='aguardando_confirmacao'?'border-brand/30 bg-brand/10 text-brand':'border-white/15 bg-white/[.04] text-zinc-300';return <span className={`rounded-full border px-3 py-1 text-xs font-bold ${tone}`}>{labels[status]||'Pendente'}</span>;}
