@@ -24,25 +24,35 @@ export async function middleware(request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const isLoginPage = request.nextUrl.pathname === '/admin/login';
+  const path = request.nextUrl.pathname;
+  const isAdminLoginPage = path === '/admin/login';
+  const isCustomerLoginPage = path === '/login';
+  const isProtectedArea = path.startsWith('/admin/') || path === '/minha-conta';
 
-  if (!user && !isLoginPage) {
+  if (!user && isProtectedArea && !isAdminLoginPage) {
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/admin/login';
+    loginUrl.pathname = path.startsWith('/admin/') ? '/admin/login' : '/login';
     loginUrl.searchParams.set('redirected', '1');
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && isLoginPage) {
+  if (user && isAdminLoginPage) {
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = '/admin/dashboard';
     dashboardUrl.search = '';
     return NextResponse.redirect(dashboardUrl);
   }
 
+  if (user && isCustomerLoginPage) {
+    const accountUrl = request.nextUrl.clone();
+    accountUrl.pathname = '/minha-conta';
+    accountUrl.search = '';
+    return NextResponse.redirect(accountUrl);
+  }
+
   return response;
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/minha-conta', '/login'],
 };
