@@ -1,0 +1,1 @@
+export default function LoadingOrders() { return <main className="min-h-screen bg-ink px-5 py-8 text-white"><div className="mx-auto max-w-7xl animate-pulse"><div className="h-7 w-48 rounded bg-white/10"/><div className="mt-10 h-16 rounded-2xl bg-white/5"/><div className="mt-6 h-80 rounded-2xl bg-white/5"/></div></main>; }
