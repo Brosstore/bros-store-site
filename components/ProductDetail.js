@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Heart, Minus, PackageCheck, Plus, ShieldCheck, ShoppingBag, Truck, Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { storeWhatsappLink } from '../lib/storeSettings';
 import ProductCard from './ProductCard';
 import { useCart } from './cart/CartContext';
@@ -19,7 +20,9 @@ export default function ProductDetail({ product, related, settings }) {
   const [tab, setTab] = useState(0);
   const [favorite, setFavorite] = useState(false);
   const [notice, setNotice] = useState('');
-  const { addItem } = useCart();
+  const router = useRouter();
+  const { addItem, closeCart } = useCart();
+  const [buying, setBuying] = useState(false);
 
   useEffect(() => { if (!notice) return undefined; const timeout = window.setTimeout(() => setNotice(''), 3200); return () => window.clearTimeout(timeout); }, [notice]);
   const selectedColor = color === null ? '' : colors[color] || '';
@@ -27,15 +30,28 @@ export default function ProductDetail({ product, related, settings }) {
   const availableQuantity = selectedVariant ? selectedVariant.quantity : product.stock;
   const unavailable = product.isAvailable === false || (selectedVariant && selectedVariant.quantity < quantity);
   const whatsapp = storeWhatsappLink(settings, [`Olá! Quero comprar: ${product.name}.`, size && `Tamanho: ${size}.`, selectedColor && `Cor: ${selectedColor}.`, `Quantidade: ${quantity}.`, `Preço: ${product.price}.`].filter(Boolean).join(' '));
+  const valid = () => {
+    if (product.isAvailable === false) { setNotice('Este produto está indisponível.'); return false; }
+    if (sizes.length && !size) { setNotice('Selecione um tamanho.'); return false; }
+    if (colors.length && color === null) { setNotice('Selecione uma cor.'); return false; }
+    if ((product.inventoryVariants || []).length && (!selectedVariant || selectedVariant.quantity < quantity)) { setNotice('Quantidade indisponível em estoque.'); return false; }
+    if (availableQuantity !== null && availableQuantity !== undefined && availableQuantity < quantity) { setNotice('Quantidade indisponível em estoque.'); return false; }
+    return true;
+  };
   const addToCart = () => {
-    if (product.isAvailable === false) { setNotice('Produto indisponível no momento.'); return; }
-    if (sizes.length && !size) { setNotice('Selecione um tamanho para continuar.'); return; }
-    if (colors.length && color === null) { setNotice('Selecione uma cor para continuar.'); return; }
-    if ((product.inventoryVariants || []).length && (!selectedVariant || selectedVariant.quantity < quantity)) { setNotice('Esta variação não possui estoque suficiente.'); return; }
-    if (availableQuantity !== null && availableQuantity !== undefined && availableQuantity < quantity) { setNotice('Estoque insuficiente para esta quantidade.'); return; }
+    if (!valid()) return;
     addItem(product, { selectedSize: size, selectedColor, quantity });
     setNotice('Produto adicionado ao carrinho.');
   };
+  const buyNow = () => { if (buying || !valid()) return; setBuying(true); addItem(product, { selectedSize: size, selectedColor, quantity }); closeCart(); router.push('/checkout'); };
+  useEffect(() => {
+    const intercept = (event) => {
+      const link = event.target.closest('a');
+      if (link?.textContent?.includes('Comprar agora')) { event.preventDefault(); buyNow(); }
+    };
+    document.addEventListener('click', intercept);
+    return () => document.removeEventListener('click', intercept);
+  });
   const content = [
     <p key="description">{product.description} Desenvolvida com materiais selecionados, acabamento durável e atenção aos detalhes que fazem a diferença no seu visual.</p>,
     sizes.length ? <div key="measurements" className="grid max-w-md grid-cols-3 gap-3 text-sm"><span className="font-bold">Tamanho</span><span className="font-bold">Tórax</span><span className="font-bold">Comprimento</span>{sizes.map((value, index) => <div className="contents" key={value}><span>{value}</span><span>{88 + index * 4} cm</span><span>{65 + index * 2} cm</span></div>)}</div> : <p key="measurements">Este produto não possui tabela de medidas.</p>,
