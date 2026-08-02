@@ -14,6 +14,7 @@ export const metadata = {
   keywords: ['Bros Store', 'moda urbana', 'streetwear', 'roupas', 'calçados', 'acessórios'],
   alternates: { canonical: '/' },
   manifest: '/manifest.webmanifest',
+  verification: { google: 'bO2dsvaolc_hwOn26vdkw80NsgEnsRXs-v8NGygO3hU' },
   robots: { index: true, follow: true },
   openGraph: { title: `${siteConfig.name} | ${siteConfig.tagline}`, description: siteConfig.description, type: 'website', locale: 'pt_BR', url: siteConfig.url, siteName: siteConfig.name, images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Bros Store — Vista sua atitude.' }] },
   twitter: { card: 'summary_large_image', title: `${siteConfig.name} | ${siteConfig.tagline}`, description: siteConfig.description, images: ['/opengraph-image'] },
