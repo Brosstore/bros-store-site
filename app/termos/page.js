@@ -1,0 +1,4 @@
+import InstitutionalPage from '../../components/InstitutionalPage';
+
+export const metadata = { title: 'Termos de uso | Bros Store', description: 'Termos de uso da Bros Store.', alternates: { canonical: '/termos' } };
+export default function TermsPage() { return <InstitutionalPage eyebrow="Informações legais" title="TERMOS DE USO." intro="Ao utilizar este site, você concorda em fornecer informações verdadeiras e em usar os canais da loja de forma responsável." sections={[{ title: 'Catálogo e disponibilidade', content: 'As informações apresentadas no catálogo podem ser atualizadas. A disponibilidade é confirmada no fluxo de compra.' }, { title: 'Uso do site', content: 'Não é permitido utilizar o site de forma que prejudique sua segurança, disponibilidade ou os direitos de terceiros.' }, { title: 'Atendimento', content: 'Em caso de dúvida sobre um produto ou pedido, utilize os canais oficiais de atendimento da Bros Store.' }]} />; }

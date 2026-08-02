@@ -1,0 +1,4 @@
+import InstitutionalPage from '../../components/InstitutionalPage';
+
+export const metadata = { title: 'Trocas e devoluções | Bros Store', description: 'Orientações para solicitar troca ou devolução na Bros Store.', alternates: { canonical: '/trocas' } };
+export default function ReturnsPage() { return <InstitutionalPage eyebrow="Atendimento" title="TROCAS E DEVOLUÇÕES." intro="Se precisar de ajuda após a compra, entre em contato com a Bros Store informando o número do pedido e o produto envolvido." sections={[{ title: 'Como solicitar', content: 'Envie sua solicitação pelos canais oficiais de atendimento. Nossa equipe orientará os próximos passos conforme o caso.' }, { title: 'Condições da solicitação', content: 'A análise considera as informações do pedido e o estado do produto. Guarde comprovantes e informações relevantes para o atendimento.' }, { title: 'Atendimento', content: 'Use o WhatsApp ou e-mail informado no site para registrar sua solicitação.' }]} />; }

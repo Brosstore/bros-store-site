@@ -1,0 +1,4 @@
+import InstitutionalPage from '../../components/InstitutionalPage';
+
+export const metadata = { title: 'Entregas | Bros Store', description: 'Informações de entrega da Bros Store.', alternates: { canonical: '/entregas' } };
+export default function DeliveryPage() { return <InstitutionalPage eyebrow="Atendimento" title="ENTREGAS." intro="As informações de entrega são confirmadas durante o atendimento e no acompanhamento do pedido." sections={[{ title: 'Acompanhamento', content: 'Após a criação do pedido, acompanhe as informações disponíveis na sua área do cliente e nos canais de atendimento.' }, { title: 'Endereço de entrega', content: 'Confira seus dados antes de concluir o pedido. Atualizações de endereço podem depender do estágio de preparação do pedido.' }, { title: 'Dúvidas', content: 'Se precisar de ajuda com a entrega, informe o número do pedido ao entrar em contato.' }]} />; }

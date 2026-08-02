@@ -4,8 +4,7 @@ import Footer from '../../components/Footer';
 import WhatsAppButton from '../../components/WhatsAppButton';
 import { filterProductsByCategory, getAllProducts } from '../../lib/catalog/products';
 import { getStoreSettings } from '../../lib/storeSettings';
-
-export const metadata = { title: 'Produtos | Bros Store', description: 'Conheça o catálogo completo da Bros Store.' };
+import { absoluteUrl } from '../../lib/seo';
 
 const filters = [
   { label: 'Todos os produtos', value: '' },
@@ -14,6 +13,15 @@ const filters = [
   { label: 'Masculino', value: 'masculino' },
   { label: 'Feminino', value: 'feminino' },
 ];
+
+export async function generateMetadata({ searchParams }) {
+  const requestedCategory = typeof searchParams?.categoria === 'string' ? searchParams.categoria : '';
+  const category = filters.find((filter) => filter.value === requestedCategory && filter.value);
+  const title = category ? `${category.label} | Bros Store` : 'Produtos | Bros Store';
+  const description = category ? `Confira produtos da categoria ${category.label} na Bros Store.` : 'Conheça o catálogo completo da Bros Store.';
+  const path = category ? `/produtos?categoria=${encodeURIComponent(category.value)}` : '/produtos';
+  return { title, description, alternates: { canonical: absoluteUrl(path) }, openGraph: { title, description, url: absoluteUrl(path) }, twitter: { card: 'summary_large_image', title, description } };
+}
 
 export default async function ProductsPage({ searchParams }) {
   const requestedCategory = typeof searchParams?.categoria === 'string' ? searchParams.categoria : '';

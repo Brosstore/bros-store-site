@@ -1,0 +1,13 @@
+{
+  "name": "Bros Store — Vista sua atitude.",
+  "short_name": "Bros Store",
+  "description": "Roupas, calçados e acessórios para vestir sua atitude.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#F5C518",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
