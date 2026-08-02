@@ -25,6 +25,49 @@ function text(formData, field) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function optionalText(formData, field, maxLength) {
+  const value = text(formData, field);
+  if (!value) return null;
+  if (value.length > maxLength) throw new Error(`O campo ${field} excede o limite de ${maxLength} caracteres.`);
+  return value;
+}
+
+function validateHomeUrl(value, field) {
+  if (!value) return null;
+  if (value.length > 500) throw new Error(`A URL de ${field} excede o limite de 500 caracteres.`);
+
+  if (value.startsWith('/')) {
+    if (value.startsWith('//') || value.includes('\\')) throw new Error(`A URL de ${field} deve ser um caminho interno seguro ou uma URL HTTP(S).`);
+    return value;
+  }
+
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`A URL de ${field} é inválida.`);
+  }
+
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error(`A URL de ${field} deve usar HTTP(S) ou um caminho interno iniciado por /.`);
+  }
+  if (['wa.me', 'api.whatsapp.com', 'web.whatsapp.com'].includes(url.hostname.toLowerCase())) {
+    throw new Error('CTAs genéricos da Home não podem direcionar diretamente para o WhatsApp.');
+  }
+  return url.toString();
+}
+
+async function assertHomeContentColumns(supabase) {
+  const { error } = await supabase
+    .from('store_settings')
+    .select('home_eyebrow, home_title, home_subtitle, home_description, home_primary_cta_label, home_primary_cta_url, home_secondary_cta_label, home_secondary_cta_url')
+    .limit(1);
+  if (error) {
+    console.error('[settings] home content schema unavailable', { code: error.code, message: error.message });
+    throw new Error('O conteúdo da Home ainda não está disponível. Aplique a migration 202608010012 antes de salvar.');
+  }
+}
+
 async function uploadAsset(supabase, file, type) {
   if (!(file instanceof File) || file.size === 0) return null;
   if (!allowedTypes.has(file.type) || file.size > maxSize) throw new Error('Logo e banner devem ser JPG, PNG ou WEBP de até 5 MB.');
@@ -39,6 +82,7 @@ export async function saveStoreSettings(formData) {
   const uploadedPaths = [];
   try {
     if (!(formData instanceof FormData)) return { error: 'Dados inválidos.' };
+    const hasHomeContent = formData.has('homeEyebrow');
     const values = {
       store_name: text(formData, 'storeName') || 'Bros Store',
       slogan: text(formData, 'slogan') || 'Vista sua atitude.',
@@ -58,9 +102,22 @@ export async function saveStoreSettings(formData) {
       pix_city: text(formData, 'pixCity') || null,
       pix_instructions: text(formData, 'pixInstructions') || null,
     };
+    if (hasHomeContent) {
+      Object.assign(values, {
+        home_eyebrow: optionalText(formData, 'homeEyebrow', 80),
+        home_title: optionalText(formData, 'homeTitle', 120),
+        home_subtitle: optionalText(formData, 'homeSubtitle', 180),
+        home_description: optionalText(formData, 'homeDescription', 420),
+        home_primary_cta_label: optionalText(formData, 'homePrimaryCtaLabel', 60),
+        home_primary_cta_url: validateHomeUrl(text(formData, 'homePrimaryCtaUrl'), 'botão principal'),
+        home_secondary_cta_label: optionalText(formData, 'homeSecondaryCtaLabel', 60),
+        home_secondary_cta_url: validateHomeUrl(text(formData, 'homeSecondaryCtaUrl'), 'botão secundário'),
+      });
+    }
     if (!values.description || !values.whatsapp || !values.email) throw new Error('Preencha nome, slogan, descrição, WhatsApp e e-mail.');
 
     const supabase = await requireAdmin();
+    if (hasHomeContent) await assertHomeContentColumns(supabase);
     const { data: current, error: currentError } = await supabase
       .from('store_settings')
       .select('id, logo_path, banner_path')
