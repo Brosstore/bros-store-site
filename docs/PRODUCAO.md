@@ -34,6 +34,22 @@ deploy e revogue imediatamente o valor anterior no provedor.
 5. Envie a branch `main` e acompanhe `npx vercel ls bros-store-site` até `Ready`.
 6. Valide a página inicial, checkout e o endpoint de webhook no domínio gratuito principal.
 
+## Gate de release candidate
+
+Antes de promover uma versão para produção:
+
+1. Execute `npm audit --omit=dev` e não aceite vulnerabilidades altas ou críticas.
+2. Execute `npm run lint`, `npm test`, `npx tsc --noEmit` e `npm run build`.
+3. Confirme manualmente, sem criar transações financeiras reais, a Home, catálogo, busca, filtros, produto, carrinho e redirecionamento do checkout para login.
+4. Confirme `robots.txt`, `sitemap.xml`, `manifest.webmanifest` e os cabeçalhos de segurança.
+5. Consulte erros e respostas 5xx recentes nos logs de produção da Vercel.
+6. Confirme que migrations locais e remotas estão alinhadas antes de qualquer `db push`.
+
+Os cabeçalhos globais esperados incluem `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` e
+`Cross-Origin-Opener-Policy`. Rotas de autenticação, conta, checkout, API e
+administração não devem ser indexadas.
+
 ## Pagamentos e webhook
 
 - A preferência grava o UUID do pedido em `external_reference`.
