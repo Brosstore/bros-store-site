@@ -48,6 +48,10 @@ test('extracts payment notifications and rejects conflicting signed/body IDs', (
     getWebhookPaymentId({ ...payload, data: { id: '999999' } }, request.nextUrl.searchParams),
     '',
   );
+  assert.equal(
+    getWebhookPaymentId(payload, new URLSearchParams('type=payment')),
+    '',
+  );
 });
 
 test('acknowledges a signed simulator ID only when the API returns not found', async () => {
