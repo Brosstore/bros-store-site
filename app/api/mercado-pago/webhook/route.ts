@@ -1,5 +1,9 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
-import { MercadoPagoConfig, Payment } from 'mercadopago';
+import {
+  InvalidWebhookSignatureError,
+  MercadoPagoConfig,
+  Payment,
+  WebhookSignatureValidator,
+} from 'mercadopago';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
 
@@ -20,27 +24,15 @@ function getWebhookPaymentId(payload: WebhookPayload, request: NextRequest): str
   return /^\d+$/.test(paymentId) ? paymentId : '';
 }
 
-function getSignaturePart(signature: string, key: string): string {
-  return signature
-    .split(',')
-    .map((part) => part.trim().split('='))
-    .find(([name]) => name === key)?.[1] || '';
-}
+function validateSignature(request: NextRequest, secret: string): void {
+  const dataId = request.nextUrl.searchParams.get('data.id')?.trim().toLowerCase();
 
-function hasValidSignature(request: NextRequest, paymentId: string, secret: string): boolean {
-  const signature = request.headers.get('x-signature') || '';
-  const requestId = request.headers.get('x-request-id') || '';
-  const timestamp = getSignaturePart(signature, 'ts');
-  const receivedHash = getSignaturePart(signature, 'v1');
-
-  if (!paymentId || !requestId || !timestamp || !/^[a-f0-9]{64}$/i.test(receivedHash)) {
-    return false;
-  }
-
-  const manifest = `id:${paymentId};request-id:${requestId};ts:${timestamp};`;
-  const expectedHash = createHmac('sha256', secret).update(manifest).digest('hex');
-
-  return timingSafeEqual(Buffer.from(receivedHash, 'hex'), Buffer.from(expectedHash, 'hex'));
+  WebhookSignatureValidator.validate({
+    xSignature: request.headers.get('x-signature'),
+    xRequestId: request.headers.get('x-request-id'),
+    dataId,
+    secret,
+  });
 }
 
 function isPaymentNotification(payload: WebhookPayload, request: NextRequest): boolean {
@@ -82,14 +74,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Notificação inválida.' }, { status: 400 });
   }
 
-  const paymentId = getWebhookPaymentId(payload, request);
-  if (!hasValidSignature(request, paymentId, webhookSecret)) {
-    console.error('Mercado Pago webhook: assinatura inválida.');
+  try {
+    validateSignature(request, webhookSecret);
+  } catch (error) {
+    console.error('Mercado Pago webhook: assinatura inválida.', {
+      reason: error instanceof InvalidWebhookSignatureError ? error.reason : 'ValidationError',
+    });
     return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 });
   }
 
   if (!isPaymentNotification(payload, request)) {
     return NextResponse.json({ received: true, ignored: true });
+  }
+
+  const paymentId = getWebhookPaymentId(payload, request);
+  if (!paymentId) {
+    return NextResponse.json({ error: 'Notificação inválida.' }, { status: 400 });
   }
 
   try {
