@@ -1,45 +1,23 @@
-import {
-  InvalidWebhookSignatureError,
-  MercadoPagoConfig,
-  Payment,
-  WebhookSignatureValidator,
-} from 'mercadopago';
+import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
+import webhookUtils from '../../../../lib/mercado-pago/webhook.cjs';
+
+const {
+  InvalidWebhookSignatureError,
+  fetchPayment,
+  getMercadoPagoErrorDetails,
+  getWebhookPaymentId,
+  isPaymentNotification,
+  isRecord,
+  validateWebhookSignature,
+} = webhookUtils;
 
 type WebhookPayload = {
   type?: unknown;
   action?: unknown;
   data?: { id?: unknown };
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function getWebhookPaymentId(payload: WebhookPayload, request: NextRequest): string {
-  const candidates = [request.nextUrl.searchParams.get('data.id'), request.nextUrl.searchParams.get('id'), payload.data?.id];
-  const value = candidates.find((candidate) => typeof candidate === 'string' || typeof candidate === 'number');
-  const paymentId = String(value || '').trim();
-  return /^\d+$/.test(paymentId) ? paymentId : '';
-}
-
-function validateSignature(request: NextRequest, secret: string): void {
-  const dataId = request.nextUrl.searchParams.get('data.id')?.trim().toLowerCase();
-
-  WebhookSignatureValidator.validate({
-    xSignature: request.headers.get('x-signature'),
-    xRequestId: request.headers.get('x-request-id'),
-    dataId,
-    secret,
-  });
-}
-
-function isPaymentNotification(payload: WebhookPayload, request: NextRequest): boolean {
-  const type = typeof payload.type === 'string' ? payload.type : request.nextUrl.searchParams.get('topic');
-  const action = typeof payload.action === 'string' ? payload.action : '';
-  return type === 'payment' || action.startsWith('payment.');
-}
 
 function createServerSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -75,7 +53,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    validateSignature(request, webhookSecret);
+    validateWebhookSignature(request, webhookSecret);
   } catch (error) {
     console.error('Mercado Pago webhook: assinatura inválida.', {
       reason: error instanceof InvalidWebhookSignatureError ? error.reason : 'ValidationError',
@@ -83,18 +61,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 });
   }
 
-  if (!isPaymentNotification(payload, request)) {
+  if (!isPaymentNotification(payload, request.nextUrl.searchParams)) {
     return NextResponse.json({ received: true, ignored: true });
   }
 
-  const paymentId = getWebhookPaymentId(payload, request);
+  const paymentId = getWebhookPaymentId(payload, request.nextUrl.searchParams);
   if (!paymentId) {
     return NextResponse.json({ error: 'Notificação inválida.' }, { status: 400 });
   }
 
   try {
     const paymentClient = new Payment(new MercadoPagoConfig({ accessToken }));
-    const payment = await paymentClient.get({ id: paymentId });
+    const payment = await fetchPayment(paymentClient, paymentId);
+
+    // The official simulator accepts an arbitrary Data ID (the documentation
+    // uses 123456). A signed notification can therefore legitimately point to
+    // no API resource. Acknowledge only that verified 404; other SDK failures
+    // still return 5xx so Mercado Pago retries them.
+    if (!payment) {
+      console.info('Mercado Pago webhook: recurso assinado não encontrado.', {
+        paymentId,
+      });
+      return NextResponse.json({ received: true, resourceFound: false });
+    }
     const externalReference = typeof payment.external_reference === 'string'
       ? payment.external_reference.trim()
       : '';
@@ -126,7 +115,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('Mercado Pago webhook: falha ao consultar ou sincronizar pagamento.', {
-      message: error instanceof Error ? error.message : 'Erro desconhecido.',
+      ...getMercadoPagoErrorDetails(error),
+      paymentId,
     });
     return NextResponse.json({ error: 'Não foi possível processar a notificação.' }, { status: 500 });
   }

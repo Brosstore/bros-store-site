@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "node --test tests/*.test.cjs",
     "import:products": "node scripts/import-products.js",
     "compare:catalog": "node scripts/compare-catalog.js"
   },
