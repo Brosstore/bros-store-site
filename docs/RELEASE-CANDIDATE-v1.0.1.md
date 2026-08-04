@@ -4,8 +4,7 @@ Data da auditoria: 4 de agosto de 2026.
 
 ## Resultado
 
-Release candidate aprovado para publicação, condicionado apenas à conclusão do
-deploy principal e à validação HTTP posterior ao deploy.
+Release candidate aprovado e publicado no deployment principal da Vercel.
 
 ## Correções incluídas
 
@@ -30,6 +29,9 @@ deploy principal e à validação HTTP posterior ao deploy.
 - Metadados, canonical, imagens com texto alternativo e controles com nome acessível.
 - Todas as 21 migrations locais alinhadas com produção; nenhuma migration nova.
 - Logs Vercel dos últimos sete dias sem erros de aplicação ou respostas 5xx.
+- Deployment de produção `dpl_D6daGpXaj9ZsY7Joq9zyG8b4uEq5` em estado Ready.
+- Home, catálogo, produto, carrinho, páginas institucionais, robots, sitemap e
+  manifesto respondendo HTTP 200 no domínio principal após o deploy.
 
 ## Segurança e dados
 
