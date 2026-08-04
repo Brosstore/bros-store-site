@@ -114,8 +114,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
+    const { status: providerStatus, code, type } = getMercadoPagoErrorDetails(error);
     console.error('Mercado Pago webhook: falha ao consultar ou sincronizar pagamento.', {
-      ...getMercadoPagoErrorDetails(error),
+      providerStatus,
+      code,
+      type,
       paymentId,
     });
     return NextResponse.json({ error: 'Não foi possível processar a notificação.' }, { status: 500 });

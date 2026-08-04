@@ -11,11 +11,8 @@ catalogo-organizacao/
 
 .vercel/
 .env*
-b a c k u p - s c h e m a - v 2 . 0 . 0 . s q l 
- 
- s u p a b a s e / . t e m p / 
- 
- 
- . t e m p / 
- 
- 
+!.env.example
+backup-schema-*.sql
+supabase/.temp/
+.temp/
+work-*.sql

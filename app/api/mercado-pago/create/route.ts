@@ -123,13 +123,13 @@ function clientError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-function logPaymentError(operation: string, error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null }) {
+function logPaymentError(operation: string, error: unknown) {
+  const code = isRecord(error) && (typeof error.code === 'string' || typeof error.code === 'number')
+    ? String(error.code).slice(0, 100)
+    : null;
   console.error('Mercado Pago: operação não concluída', {
     operation,
-    code: error.code || null,
-    message: error.message || null,
-    details: error.details || null,
-    hint: error.hint || null,
+    code,
   });
 }
 
@@ -303,8 +303,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
       existing: Boolean(paymentAttempt.existing),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erro desconhecido.';
-    console.error('Mercado Pago: falha ao criar ou recuperar preferência.', { message });
+    console.error('Mercado Pago: falha ao criar ou recuperar preferência.', {
+      errorType: error instanceof Error ? error.name : typeof error,
+    });
     return clientError('Não foi possível iniciar o pagamento. Tente novamente.', 502);
   }
 }

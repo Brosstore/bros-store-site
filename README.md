@@ -51,6 +51,10 @@ Recomendado: [Vercel](https://vercel.com) (gratuito, feito para Next.js).
 3. A Vercel detecta o Next.js automaticamente — clique em "Deploy"
 4. Depois, configure seu domínio próprio em Project Settings → Domains
 
+Para a operação atual, mantenha o domínio gratuito da Vercel. Variáveis, deploy,
+pagamentos, webhook, reconciliação, backup, restauração e resposta a incidentes
+estão documentados em **`docs/PRODUCAO.md`**.
+
 ## SEO
 
 O favicon e a imagem de compartilhamento (Open Graph) já são gerados automaticamente pelo Next.js a partir de `app/icon.svg` e `app/opengraph-image.js`. Um `sitemap.xml` e `robots.txt` também são gerados automaticamente a partir de `app/sitemap.js` e `app/robots.js`, usando a URL definida em `lib/siteConfig.js`.
