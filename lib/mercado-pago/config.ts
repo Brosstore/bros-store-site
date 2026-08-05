@@ -9,6 +9,7 @@ type MercadoPagoServerConfig = {
   publicKey: string;
   webhookSecret?: string;
   environment: MercadoPagoEnvironment;
+  checkoutMode: 'pro' | 'transparent';
   siteUrl: string;
   webhookUrl: string;
   getBackUrls(orderId: string): { success: string; failure: string; pending: string };

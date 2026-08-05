@@ -1,12 +1,13 @@
 'use client';
 
 import Image from 'next/image';
-import { Check, CreditCard, LoaderCircle, Plus } from 'lucide-react';
+import { Check, Copy, CreditCard, LoaderCircle, Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../../components/cart/CartContext';
 import { formatCartPrice } from '../../components/cart/cartUtils';
 import { createCheckoutAddress, finalizeOrder } from './actions';
+import MercadoPagoCardBrick from './MercadoPagoCardBrick';
 
 const paymentMethods = [
   ['pix', 'Pix'],
@@ -61,7 +62,7 @@ function apiErrorMessage(status, payload) {
   return typeof payload?.error === 'string' ? payload.error : 'Não foi possível iniciar o pagamento.';
 }
 
-export default function CheckoutClient({ initialAddresses }) {
+export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey, mercadoPagoCheckoutMode }) {
   const router = useRouter();
   const { items, hydrated, subtotalCents, clearCart } = useCart();
   const [addresses, setAddresses] = useState(initialAddresses);
@@ -72,12 +73,14 @@ export default function CheckoutClient({ initialAddresses }) {
   const [error, setError] = useState('');
   const [savingAddress, setSavingAddress] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [pixPayment, setPixPayment] = useState(null);
   const paymentAttemptKeyRef = useRef(null);
   const cartSignature = useMemo(
     () => items.map((item) => `${item.key}:${item.quantity}`).join('|'),
     [items],
   );
   const isMercadoPago = mercadoPagoMethods.has(paymentMethod);
+  const isTransparent = mercadoPagoCheckoutMode === 'transparent';
   const inputClass = 'mt-2 w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20';
 
   useEffect(() => {
@@ -160,6 +163,45 @@ export default function CheckoutClient({ initialAddresses }) {
     window.location.assign(redirectUrl);
   }
 
+  async function startTransparentPayment(orderItems, card) {
+    if (!addressId) throw new Error('Selecione ou cadastre um endereço.');
+    if (!orderItems.length) throw new Error('Seu carrinho está vazio.');
+    const idempotencyKey = paymentAttemptKeyRef.current || createIdempotencyKey();
+    paymentAttemptKeyRef.current = idempotencyKey;
+    setSubmitting(true);
+    setError('');
+    let response;
+    try {
+      response = await fetch('/api/mercado-pago/orders', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addressId, notes, items: orderItems, paymentMethod, idempotencyKey, card }),
+      });
+    } catch {
+      setSubmitting(false);
+      throw new Error('Não foi possível conectar ao pagamento online. Tente novamente.');
+    }
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      setSubmitting(false);
+      throw new Error(apiErrorMessage(response.status, payload));
+    }
+    paymentAttemptKeyRef.current = null;
+    clearCart();
+    if (payload.pix?.qrCode) {
+      setPixPayment({ ...payload.pix, orderId: payload.orderId, orderNumber: payload.orderNumber });
+      setSubmitting(false);
+      return payload;
+    }
+    router.replace(`/pedido-confirmado/${payload.orderId}`);
+    router.refresh();
+    return payload;
+  }
+
+  async function submitTransparentCard(card) {
+    try { await startTransparentPayment(buildOrderItems(), card); }
+    catch (submitError) { setError(submitError instanceof Error ? submitError.message : 'Não foi possível processar o cartão.'); throw submitError; }
+  }
+
   async function submitOrder() {
     if (submitting) return;
 
@@ -178,7 +220,8 @@ export default function CheckoutClient({ initialAddresses }) {
 
     if (isMercadoPago) {
       try {
-        await startMercadoPagoPayment(orderItems);
+        if (isTransparent) await startTransparentPayment(orderItems);
+        else await startMercadoPagoPayment(orderItems);
       } catch (submitError) {
         setError(submitError instanceof Error ? submitError.message : 'Não foi possível iniciar o pagamento.');
         setSubmitting(false);
@@ -198,6 +241,15 @@ export default function CheckoutClient({ initialAddresses }) {
     router.refresh();
   }
 
+  if (pixPayment) return <section className="section mx-auto max-w-2xl text-center">
+    <p className="eyebrow">Pedido #{pixPayment.orderNumber}</p>
+    <h1 className="section-title">PAGUE COM <span className="text-brand">PIX.</span></h1>
+    <p className="mt-4 text-zinc-400">Escaneie o QR Code ou copie o código. A confirmação será automática.</p>
+    {pixPayment.qrCodeBase64 && <Image unoptimized width={256} height={256} src={`data:image/png;base64,${pixPayment.qrCodeBase64}`} alt="QR Code Pix" className="mx-auto mt-8 h-64 w-64 rounded-2xl bg-white p-3" />}
+    <div className="mt-6 rounded-xl border border-white/10 bg-black/30 p-4 text-left"><p className="break-all text-xs text-zinc-300">{pixPayment.qrCode}</p></div>
+    <button type="button" className="button-primary mt-5" onClick={() => navigator.clipboard.writeText(pixPayment.qrCode)}><Copy size={16}/>Copiar código Pix</button>
+    <a href={`/pedido-confirmado/${pixPayment.orderId}`} className="button-dark mt-4">Acompanhar pedido</a>
+  </section>;
   if (!hydrated) return <section className="section flex min-h-[60vh] items-center justify-center"><LoaderCircle className="animate-spin text-brand" /></section>;
   if (!items.length) return <section className="section flex min-h-[60vh] flex-col items-center justify-center text-center"><p className="eyebrow">Checkout</p><h1 className="section-title">SEU CARRINHO ESTÁ <span className="text-brand">VAZIO.</span></h1><a href="/produtos" className="button-primary mt-8">Continuar comprando</a></section>;
 
@@ -215,6 +267,7 @@ export default function CheckoutClient({ initialAddresses }) {
         <section className="glass rounded-2xl p-6 sm:p-7">
           <p className="eyebrow">Pagamento</p><h2 className="text-xl font-extrabold">FORMA DE PAGAMENTO</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">{paymentMethods.map(([value, label]) => <button type="button" key={value} onClick={() => selectPaymentMethod(value)} aria-pressed={paymentMethod === value} className={`rounded-xl border p-4 text-sm font-bold transition ${paymentMethod === value ? 'border-brand bg-brand text-ink' : 'border-white/10 text-zinc-300 hover:border-brand'}`}><CreditCard size={17} className="mx-auto mb-2" />{label}</button>)}</div>
+          {isTransparent && paymentMethod === 'mercado_pago_cartao' && <MercadoPagoCardBrick amount={subtotalCents / 100} publicKey={mercadoPagoPublicKey} onSubmit={submitTransparentCard}/>}
           <label className="mt-6 block text-sm font-semibold">Observações <span className="font-normal text-zinc-500">(opcional)</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} rows={3} className={inputClass} placeholder="Alguma informação para a entrega?" /></label>
         </section>
       </div>
@@ -223,7 +276,7 @@ export default function CheckoutClient({ initialAddresses }) {
         <ul className="mt-5 divide-y divide-white/10">{items.map((item) => <li key={item.key} className="flex gap-3 py-4"><div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-900">{item.image && <Image src={item.image} alt={item.name} fill sizes="56px" className="object-contain" />}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold">{item.name}</p><p className="mt-1 text-xs text-zinc-500">{[item.selectedSize && `Tam. ${item.selectedSize}`, item.selectedColor && `Cor ${item.selectedColor}`, `${item.quantity} un.`].filter(Boolean).join(' · ')}</p><p className="mt-1 text-sm font-extrabold text-brand">{formatCartPrice(item.price_cents * item.quantity)}</p></div></li>)}</ul>
         <dl className="mt-4 space-y-3 border-t border-white/10 pt-5 text-sm"><div className="flex justify-between"><dt className="text-zinc-400">Subtotal</dt><dd>{formatCartPrice(subtotalCents)}</dd></div><div className="flex justify-between"><dt className="text-zinc-400">Frete</dt><dd>R$ 0,00</dd></div><div className="flex justify-between"><dt className="text-zinc-400">Desconto</dt><dd>R$ 0,00</dd></div><div className="flex justify-between border-t border-white/10 pt-4 text-base font-extrabold"><dt>Total</dt><dd className="text-brand">{formatCartPrice(subtotalCents)}</dd></div></dl>
         {error && <p role="alert" aria-live="polite" className="mt-5 rounded-lg border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}
-        <button type="button" disabled={submitting} onClick={submitOrder} className="button-primary mt-6 w-full disabled:cursor-not-allowed disabled:opacity-70">{submitting && <LoaderCircle size={16} className="animate-spin" />}{submitting ? (isMercadoPago ? 'Redirecionando para o Mercado Pago...' : 'Finalizando...') : 'Confirmar pedido'}</button>
+        {!(isTransparent && paymentMethod === 'mercado_pago_cartao') && <button type="button" disabled={submitting} onClick={submitOrder} className="button-primary mt-6 w-full disabled:cursor-not-allowed disabled:opacity-70">{submitting && <LoaderCircle size={16} className="animate-spin" />}{submitting ? (isMercadoPago ? 'Processando com o Mercado Pago...' : 'Finalizando...') : 'Confirmar pedido'}</button>}
       </aside>
     </div>
   </section>;

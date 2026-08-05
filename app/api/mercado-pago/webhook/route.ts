@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
 import webhookUtils from '../../../../lib/mercado-pago/webhook.cjs';
 import { getMercadoPagoConfig } from '../../../../lib/mercado-pago/config';
+import ordersUtils from '../../../../lib/mercado-pago/orders.cjs';
 
 const {
   InvalidWebhookSignatureError,
@@ -13,6 +14,7 @@ const {
   isRecord,
   validateWebhookSignature,
 } = webhookUtils;
+const { normalizeOrderPayment } = ordersUtils;
 
 type WebhookPayload = {
   type?: unknown;
@@ -61,16 +63,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 });
   }
 
-  if (!isPaymentNotification(payload, request.nextUrl.searchParams)) {
+  const notificationType = typeof payload.type === 'string' ? payload.type : request.nextUrl.searchParams.get('type');
+  const isOrderNotification = notificationType === 'order';
+  if (!isOrderNotification && !isPaymentNotification(payload, request.nextUrl.searchParams)) {
     return NextResponse.json({ received: true, ignored: true });
   }
 
-  const paymentId = getWebhookPaymentId(payload, request.nextUrl.searchParams);
-  if (!paymentId) {
+  const resourceId = isOrderNotification
+    ? (typeof payload.data?.id === 'string' ? payload.data.id : request.nextUrl.searchParams.get('data.id'))
+    : getWebhookPaymentId(payload, request.nextUrl.searchParams);
+  if (!resourceId) {
     return NextResponse.json({ error: 'Notificação inválida.' }, { status: 400 });
   }
 
   try {
+    if (isOrderNotification) {
+      const response = await fetch(`https://api.mercadopago.com/v1/orders/${encodeURIComponent(resourceId)}`, {
+        headers: { Authorization: `Bearer ${mercadoPagoConfig.accessToken}`, Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        console.error('Mercado Pago webhook: consulta da order não concluída.', { providerStatus: response.status, orderId: resourceId });
+        return NextResponse.json({ error: 'Não foi possível consultar a order.' }, { status: 500 });
+      }
+      const order: unknown = await response.json();
+      const normalized = normalizeOrderPayment(order);
+      if (!normalized.orderId || normalized.orderId !== resourceId || !normalized.externalReference) {
+        return NextResponse.json({ error: 'Order inválida.' }, { status: 422 });
+      }
+      const supabase = createServerSupabaseClient();
+      const { error } = await supabase.rpc('sync_mercado_pago_payment', {
+        p_external_payment_id: normalized.paymentId || null,
+        p_external_reference: normalized.externalReference,
+        p_status: normalized.status,
+        p_status_detail: normalized.statusDetail,
+        p_payment_method: normalized.paymentMethod,
+        p_installments: normalized.installments,
+      });
+      if (error) {
+        console.error('Mercado Pago webhook: sincronização da order não concluída.', { code: error.code || null, orderId: resourceId });
+        return NextResponse.json({ error: 'Não foi possível sincronizar a order.' }, { status: 500 });
+      }
+      return NextResponse.json({ received: true });
+    }
+
+    const paymentId = resourceId;
     const paymentClient = new Payment(new MercadoPagoConfig({ accessToken: mercadoPagoConfig.accessToken }));
     const payment = await fetchPayment(paymentClient, paymentId);
 
@@ -119,7 +156,7 @@ export async function POST(request: NextRequest) {
       providerStatus,
       code,
       type,
-      paymentId,
+      resourceId,
     });
     return NextResponse.json({ error: 'Não foi possível processar a notificação.' }, { status: 500 });
   }

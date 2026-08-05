@@ -33,23 +33,23 @@ test('aceita temporariamente o nome legado da chave pública', () => {
   assert.equal(resolvePublicKey(env), 'TEST-legacy-key');
 });
 
-test('rejeita nomes atual e legado com valores diferentes', () => {
+test('prioriza o nome atual quando o legado ainda existe', () => {
   const env = { ...testEnv, NEXT_PUBLIC_MP_PUBLIC_KEY: 'TEST-other-key' };
-  assert.throws(() => resolvePublicKey(env), { code: 'CONFLICTING_PUBLIC_KEYS' });
+  assert.equal(resolvePublicKey(env), testEnv.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY);
 });
 
-test('infere o ambiente pelas credenciais quando a variável explícita ainda não existe', () => {
+test('exige ambiente explícito porque credenciais modernas podem compartilhar prefixo', () => {
   const env = { ...testEnv, MERCADO_PAGO_ENVIRONMENT: '' };
-  assert.equal(resolveEnvironment(env, env.MERCADO_PAGO_ACCESS_TOKEN, env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY), 'test');
+  assert.throws(() => resolveEnvironment(env, env.MERCADO_PAGO_ACCESS_TOKEN, env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY), { code: 'MISSING_ENVIRONMENT' });
 });
 
-test('rejeita mistura de token de teste e chave de produção', () => {
-  const env = { ...testEnv, NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY: 'APP_USR-production-key' };
-  assert.throws(() => getMercadoPagoConfig(env), { code: 'MIXED_CREDENTIAL_ENVIRONMENTS' });
+test('aceita APP_USR em teste quando o ambiente explícito é test', () => {
+  const env = { ...testEnv, MERCADO_PAGO_ACCESS_TOKEN: 'APP_USR-test-token', NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY: 'APP_USR-test-key' };
+  assert.equal(getMercadoPagoConfig(env).environment, 'test');
 });
 
 test('rejeita ambiente explícito incompatível com as credenciais', () => {
-  const env = { ...testEnv, MERCADO_PAGO_ENVIRONMENT: 'production' };
+  const env = { ...testEnv, MERCADO_PAGO_ENVIRONMENT: 'production', MERCADO_PAGO_ACCESS_TOKEN: 'TEST-token' };
   assert.throws(() => getMercadoPagoConfig(env), { code: 'MIXED_CREDENTIAL_ENVIRONMENTS' });
 });
 
