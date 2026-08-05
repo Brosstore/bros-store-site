@@ -83,9 +83,10 @@ export async function POST(request: NextRequest) {
         cache: 'no-store',
       });
       if (!response.ok) {
-        if (response.status === 404) {
+        if (response.status === 404 || (mercadoPagoConfig.environment === 'test' && response.status === 400)) {
           // The official simulator signs notifications with an arbitrary Data
-          // ID. Acknowledge a verified missing resource without mutating data.
+          // ID. In test mode the Orders API currently returns either 400 or
+          // 404 for that ID. Acknowledge it without mutating persisted data.
           console.info('Mercado Pago webhook: order assinada não encontrada.', { orderId: resourceId });
           return NextResponse.json({ received: true, resourceFound: false });
         }
