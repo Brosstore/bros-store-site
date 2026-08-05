@@ -61,6 +61,13 @@ async function requestOrder(accessToken: string, idempotencyKey: string, body?: 
     cache: 'no-store',
   });
   const payload: unknown = await response.json().catch(() => null);
+  if (response.status === 402 && isRecord(payload)) {
+    const errors = Array.isArray(payload.errors)
+      ? payload.errors.filter(isRecord).map((error) => text(error.code ?? error.status_detail, 80)).filter(Boolean)
+      : [];
+    console.warn('Mercado Pago Orders: transação não aprovada.', { operation: body ? 'create' : 'get', errors });
+    return payload as Record<string, unknown>;
+  }
   if (!response.ok || !isRecord(payload)) {
     console.error('Mercado Pago Orders: solicitação não concluída.', { status: response.status, operation: body ? 'create' : 'get' });
     throw new Error(response.status === 429 ? 'RATE_LIMITED' : 'PROVIDER_ERROR');
@@ -124,6 +131,9 @@ export async function POST(request: NextRequest) {
       p_status_detail: normalized.statusDetail, p_payment_method: normalized.paymentMethod, p_installments: normalized.installments,
     });
     if (syncError) return clientError('Não foi possível sincronizar o pagamento.', 500);
+  }
+  if (normalized.status === 'rejected') {
+    return clientError('O Mercado Pago não aprovou esta tentativa. Confira os dados ou escolha outro meio de pagamento.', 422);
   }
   return NextResponse.json({
     orderId, orderNumber: Number(order.order_number), externalOrderId: normalized.orderId, status: normalized.status,

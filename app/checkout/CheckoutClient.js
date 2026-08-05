@@ -182,6 +182,7 @@ export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey,
     }
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
+      if (response.status === 422) paymentAttemptKeyRef.current = null;
       setSubmitting(false);
       throw new Error(apiErrorMessage(response.status, payload));
     }
