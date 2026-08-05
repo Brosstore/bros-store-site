@@ -49,12 +49,9 @@ function isMercadoPagoUrl(value) {
 }
 
 function getMercadoPagoRedirectUrl(payload) {
-  const preferSandbox = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_MERCADO_PAGO_SANDBOX === 'true';
-  const candidates = preferSandbox
-    ? [payload?.sandbox_init_point, payload?.init_point]
-    : [payload?.init_point, payload?.sandbox_init_point];
-
-  return candidates.find((url) => typeof url === 'string' && isMercadoPagoUrl(url)) || '';
+  return typeof payload?.redirect_url === 'string' && isMercadoPagoUrl(payload.redirect_url)
+    ? payload.redirect_url
+    : '';
 }
 
 function apiErrorMessage(status, payload) {

@@ -2,6 +2,7 @@ import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
 import { createClient } from '../../../../lib/supabase/server';
+import { getMercadoPagoConfig } from '../../../../lib/mercado-pago/config';
 
 const ONLINE_PAYMENT_METHODS = new Set([
   'mercado_pago_pix',
@@ -28,6 +29,7 @@ type PreferenceResponse = {
   id: string;
   init_point: string;
   sandbox_init_point: string;
+  redirect_url: string;
   orderId: string;
   orderNumber: number;
   existing: boolean;
@@ -84,28 +86,6 @@ function parseBody(value: unknown): CreatePaymentBody | null {
   };
 }
 
-function getSiteUrl(): string {
-  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
-
-  if (configuredUrl) {
-    try {
-      const parsed = new URL(configuredUrl);
-      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-        return parsed.origin;
-      }
-    } catch {
-      // Usa a origem conhecida abaixo quando a configuração for inválida.
-    }
-  }
-
-  const vercelUrl = process.env.VERCEL_URL;
-  if (vercelUrl) {
-    return `https://${vercelUrl}`;
-  }
-
-  return 'https://bros-store-site.vercel.app';
-}
-
 function createPaymentServerClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -140,10 +120,12 @@ async function getPreferenceResponse(preference: Preference, preferenceId: strin
     throw new Error('Resposta inválida do Mercado Pago.');
   }
 
+  const mercadoPagoConfig = getMercadoPagoConfig();
   return {
     id: result.id,
     init_point: result.init_point,
     sandbox_init_point: result.sandbox_init_point,
+    redirect_url: mercadoPagoConfig.getCheckoutUrl(result),
     orderId,
     orderNumber,
     existing,
@@ -151,9 +133,13 @@ async function getPreferenceResponse(preference: Preference, preferenceId: strin
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<PreferenceResponse | { error: string }>> {
-  const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-  if (!accessToken) {
-    console.error('Mercado Pago: token de acesso não configurado.');
+  let mercadoPagoConfig;
+  try {
+    mercadoPagoConfig = getMercadoPagoConfig();
+  } catch (error) {
+    console.error('Mercado Pago: configuração inválida.', {
+      code: isRecord(error) && typeof error.code === 'string' ? error.code : 'CONFIGURATION_ERROR',
+    });
     return clientError('O pagamento online não está disponível no momento.', 503);
   }
 
@@ -232,7 +218,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
     return clientError('Não foi possível preparar o pagamento.', 500);
   }
 
-  const client = new MercadoPagoConfig({ accessToken });
+  const client = new MercadoPagoConfig({ accessToken: mercadoPagoConfig.accessToken });
   const preference = new Preference(client);
 
   try {
@@ -247,7 +233,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
       return NextResponse.json(response);
     }
 
-    const siteUrl = getSiteUrl();
     const result = await preference.create({
       body: {
         items: order.order_items.map((item) => ({
@@ -263,12 +248,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
           payment_attempt_id: paymentAttemptId,
           order_number: order.order_number,
         },
-        back_urls: {
-          success: `${siteUrl}/pedido-confirmado/${orderId}`,
-          failure: `${siteUrl}/checkout?pagamento=falhou&pedido=${orderId}`,
-          pending: `${siteUrl}/pedido-confirmado/${orderId}?pagamento=pendente`,
-        },
-        notification_url: `${siteUrl}/api/mercado-pago/webhook`,
+        back_urls: mercadoPagoConfig.getBackUrls(orderId),
+        notification_url: mercadoPagoConfig.webhookUrl,
       },
       requestOptions: { idempotencyKey: body.idempotencyKey },
     });
@@ -298,6 +279,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
       id: result.id,
       init_point: result.init_point,
       sandbox_init_point: result.sandbox_init_point,
+      redirect_url: mercadoPagoConfig.getCheckoutUrl(result),
       orderId,
       orderNumber,
       existing: Boolean(paymentAttempt.existing),

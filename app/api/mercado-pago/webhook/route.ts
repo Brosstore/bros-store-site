@@ -2,6 +2,7 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseAdminClient } from '@supabase/supabase-js';
 import webhookUtils from '../../../../lib/mercado-pago/webhook.cjs';
+import { getMercadoPagoConfig } from '../../../../lib/mercado-pago/config';
 
 const {
   InvalidWebhookSignatureError,
@@ -33,13 +34,12 @@ function createServerSupabaseClient() {
 }
 
 export async function POST(request: NextRequest) {
-  const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-  const webhookSecret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
-
-  if (!accessToken || !webhookSecret) {
-    console.error('Mercado Pago webhook: configuração ausente.', {
-      accessTokenConfigured: Boolean(accessToken),
-      webhookSecretConfigured: Boolean(webhookSecret),
+  let mercadoPagoConfig;
+  try {
+    mercadoPagoConfig = getMercadoPagoConfig({ requireWebhookSecret: true });
+  } catch (error) {
+    console.error('Mercado Pago webhook: configuração inválida.', {
+      code: isRecord(error) && typeof error.code === 'string' ? error.code : 'CONFIGURATION_ERROR',
     });
     return NextResponse.json({ error: 'Serviço indisponível.' }, { status: 503 });
   }
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    validateWebhookSignature(request, webhookSecret);
+    validateWebhookSignature(request, mercadoPagoConfig.webhookSecret);
   } catch (error) {
     console.error('Mercado Pago webhook: assinatura inválida.', {
       reason: error instanceof InvalidWebhookSignatureError ? error.reason : 'ValidationError',
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const paymentClient = new Payment(new MercadoPagoConfig({ accessToken }));
+    const paymentClient = new Payment(new MercadoPagoConfig({ accessToken: mercadoPagoConfig.accessToken }));
     const payment = await fetchPayment(paymentClient, paymentId);
 
     // The official simulator accepts an arbitrary Data ID (the documentation

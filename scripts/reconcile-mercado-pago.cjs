@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 const { createClient } = require('@supabase/supabase-js');
+const { getMercadoPagoConfig } = require('../lib/mercado-pago/config.cjs');
 
 function loadLocalEnv() {
   const envPath = path.join(process.cwd(), '.env.local');
@@ -32,7 +33,6 @@ function parseArguments(argv) {
 
 function assertConfiguration() {
   const required = [
-    'MERCADO_PAGO_ACCESS_TOKEN',
     'NEXT_PUBLIC_SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
   ];
@@ -64,7 +64,7 @@ async function loadCandidateAttempts(supabase, paymentIds) {
   for (const attempt of result.data) {
     const response = await fetch(
       `https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(attempt.external_reference)}`,
-      { headers: { Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}` } },
+      { headers: { Authorization: `Bearer ${mercadoPagoConfig.accessToken}` } },
     );
     if (!response.ok) throw new Error(`Busca no Mercado Pago falhou com HTTP ${response.status}.`);
     const body = await response.json();
@@ -99,6 +99,7 @@ function buildPlan(attempts, payments, selectedPaymentIds) {
 loadLocalEnv();
 const { apply, paymentIds } = parseArguments(process.argv.slice(2));
 assertConfiguration();
+const mercadoPagoConfig = getMercadoPagoConfig(process.env);
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -106,7 +107,7 @@ const supabase = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } },
 );
 const paymentClient = new Payment(new MercadoPagoConfig({
-  accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN,
+  accessToken: mercadoPagoConfig.accessToken,
 }));
 
 (async () => {

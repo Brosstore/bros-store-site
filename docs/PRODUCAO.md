@@ -15,6 +15,7 @@ Configure na Vercel, nos ambientes que realmente as utilizam, sem copiar valores
 | `NEXT_PUBLIC_SUPABASE_URL` | pública | URL do projeto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | pública | chave pública protegida por RLS |
 | `SUPABASE_SERVICE_ROLE_KEY` | servidor | webhook e persistência privilegiada |
+| `MERCADO_PAGO_ENVIRONMENT` | servidor | `test` ou `production`; deve corresponder às credenciais |
 | `MERCADO_PAGO_ACCESS_TOKEN` | servidor | consulta/criação no Mercado Pago |
 | `NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY` | pública | SDK/checkout do Mercado Pago |
 | `MERCADO_PAGO_WEBHOOK_SECRET` | servidor | validação HMAC do webhook |
@@ -24,6 +25,31 @@ Configure na Vercel, nos ambientes que realmente as utilizam, sem copiar valores
 Nunca prefixe `SUPABASE_SERVICE_ROLE_KEY`, `MERCADO_PAGO_ACCESS_TOKEN` ou
 `MERCADO_PAGO_WEBHOOK_SECRET` com `NEXT_PUBLIC_`. Após trocar um segredo, faça novo
 deploy e revogue imediatamente o valor anterior no provedor.
+
+`NEXT_PUBLIC_MP_PUBLIC_KEY` é aceito temporariamente como nome legado. Não configure
+os dois nomes com valores diferentes. Toda configuração nova deve usar somente
+`NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY`.
+
+### Troca da conta do Mercado Pago
+
+1. Na nova conta, crie ou selecione a aplicação que receberá os pagamentos.
+2. Copie o Access Token e a Public Key do mesmo ambiente e da mesma aplicação.
+3. Na Vercel, atualize `MERCADO_PAGO_ACCESS_TOKEN`,
+   `NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY` e `MERCADO_PAGO_ENVIRONMENT` em Production.
+4. Gere/consulte a assinatura secreta do webhook da nova aplicação e atualize
+   `MERCADO_PAGO_WEBHOOK_SECRET` na Vercel.
+5. No painel do Mercado Pago, cadastre a URL
+   `https://bros-store-site.vercel.app/api/mercado-pago/webhook` para pagamentos.
+6. Confirme que `NEXT_PUBLIC_SITE_URL` continua sendo
+   `https://bros-store-site.vercel.app` e faça um novo deploy de Production.
+7. Valide primeiro com credenciais `TEST-*` e comprador de teste. Para ativar
+   cobranças reais, troque o par completo para `APP_USR-*`, altere o ambiente para
+   `production`, faça novo deploy e então realize uma compra real de baixo valor.
+8. Depois da validação, revogue as credenciais antigas no Mercado Pago.
+
+O servidor rejeita configuração ausente, formatos desconhecidos, nomes público
+atual/legado divergentes e qualquer mistura entre credenciais de teste e produção.
+Os erros registram apenas um código de configuração, nunca os valores.
 
 ## Deploy
 
@@ -61,6 +87,8 @@ administração não devem ser indexadas.
 - Notificações repetidas são idempotentes. A sincronização não altera estoque.
 - Para teste, use exclusivamente credenciais `TEST-*`, comprador/cartão de teste e
   `sandbox_init_point`. Nunca use credencial de produção para um teste automatizado.
+- A seleção de `sandbox_init_point` ou `init_point` é feita no servidor a partir de
+  `MERCADO_PAGO_ENVIRONMENT`; o navegador não lê tokens, segredo ou ambiente.
 
 ### Diagnóstico
 
