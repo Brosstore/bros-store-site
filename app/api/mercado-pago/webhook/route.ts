@@ -83,6 +83,12 @@ export async function POST(request: NextRequest) {
         cache: 'no-store',
       });
       if (!response.ok) {
+        if (response.status === 404) {
+          // The official simulator signs notifications with an arbitrary Data
+          // ID. Acknowledge a verified missing resource without mutating data.
+          console.info('Mercado Pago webhook: order assinada não encontrada.', { orderId: resourceId });
+          return NextResponse.json({ received: true, resourceFound: false });
+        }
         console.error('Mercado Pago webhook: consulta da order não concluída.', { providerStatus: response.status, orderId: resourceId });
         return NextResponse.json({ error: 'Não foi possível consultar a order.' }, { status: 500 });
       }
