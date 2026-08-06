@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Check, Copy, CreditCard, LoaderCircle, Plus } from 'lucide-react';
+import { Check, Copy, CreditCard, LoaderCircle, Plus, Truck } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../../components/cart/CartContext';
@@ -74,6 +74,10 @@ export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey,
   const [savingAddress, setSavingAddress] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pixPayment, setPixPayment] = useState(null);
+  const [shippingQuotes, setShippingQuotes] = useState([]);
+  const [shippingService, setShippingService] = useState('');
+  const [shippingState, setShippingState] = useState('idle');
+  const [shippingError, setShippingError] = useState('');
   const paymentAttemptKeyRef = useRef(null);
   const cartSignature = useMemo(
     () => items.map((item) => `${item.key}:${item.quantity}`).join('|'),
@@ -81,11 +85,25 @@ export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey,
   );
   const isMercadoPago = mercadoPagoMethods.has(paymentMethod);
   const isTransparent = mercadoPagoCheckoutMode === 'transparent';
+  const selectedShipping = shippingQuotes.find((quote) => quote.service === shippingService) || null;
+  const totalCents = subtotalCents + (selectedShipping?.amountCents || 0);
   const inputClass = 'mt-2 w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20';
 
   useEffect(() => {
     paymentAttemptKeyRef.current = null;
   }, [cartSignature]);
+
+  useEffect(() => {
+    if (!hydrated || !addressId || !items.length) { setShippingQuotes([]); setShippingService(''); setShippingState('idle'); return; }
+    const controller = new AbortController();
+    const shippingItems = items.map(({ productId, selectedSize, selectedColor, quantity }) => ({ productId, selectedSize, selectedColor, quantity }));
+    setShippingState('loading'); setShippingError(''); setShippingQuotes([]); setShippingService('');
+    fetch('/api/shipping/quotes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ addressId, items: shippingItems }), signal: controller.signal })
+      .then(async (response) => { const payload = await response.json().catch(() => null); if (!response.ok) throw new Error(payload?.error || 'Não foi possível calcular o frete.'); return payload; })
+      .then((payload) => { const quotes = Array.isArray(payload.quotes) ? payload.quotes : []; setShippingQuotes(quotes); setShippingService(quotes[0]?.service || ''); setShippingState(quotes.length ? 'ready' : 'unavailable'); })
+      .catch((quoteError) => { if (quoteError.name !== 'AbortError') { setShippingError(quoteError.message || 'Não foi possível calcular o frete.'); setShippingState('error'); } });
+    return () => controller.abort();
+  }, [addressId, cartSignature, hydrated, items]);
 
   function resetPaymentAttempt() {
     paymentAttemptKeyRef.current = null;
@@ -143,6 +161,7 @@ export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey,
           items: orderItems,
           paymentMethod,
           idempotencyKey,
+          shippingService,
         }),
       });
     } catch {
@@ -166,6 +185,7 @@ export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey,
   async function startTransparentPayment(orderItems, card) {
     if (!addressId) throw new Error('Selecione ou cadastre um endereço.');
     if (!orderItems.length) throw new Error('Seu carrinho está vazio.');
+    if (shippingState !== 'ready' || !shippingService) throw new Error('Aguarde o cálculo e selecione uma modalidade de entrega.');
     const idempotencyKey = paymentAttemptKeyRef.current || createIdempotencyKey();
     paymentAttemptKeyRef.current = idempotencyKey;
     setSubmitting(true);
@@ -174,7 +194,7 @@ export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey,
     try {
       response = await fetch('/api/mercado-pago/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ addressId, notes, items: orderItems, paymentMethod, idempotencyKey, card }),
+        body: JSON.stringify({ addressId, notes, items: orderItems, paymentMethod, idempotencyKey, shippingService, card }),
       });
     } catch {
       setSubmitting(false);
@@ -215,6 +235,10 @@ export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey,
       setError('Seu carrinho está vazio.');
       return;
     }
+    if (shippingState !== 'ready' || !shippingService) {
+      setError('Aguarde o cálculo e selecione uma modalidade de entrega.');
+      return;
+    }
 
     const orderItems = buildOrderItems();
     setSubmitting(true);
@@ -230,7 +254,7 @@ export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey,
       return;
     }
 
-    const result = await finalizeOrder({ addressId, paymentMethod, notes, items: orderItems });
+    const result = await finalizeOrder({ addressId, paymentMethod, notes, items: orderItems, shippingService });
     if (result.error) {
       setError(result.error);
       setSubmitting(false);
@@ -266,16 +290,24 @@ export default function CheckoutClient({ initialAddresses, mercadoPagoPublicKey,
           {newAddress && <form onSubmit={saveAddress} className="mt-6 border-t border-white/10 pt-6"><div className="flex items-center justify-between"><h3 className="font-extrabold">Novo endereço</h3><button type="button" onClick={() => setNewAddress(null)} className="text-sm text-zinc-400 hover:text-white">Cancelar</button></div><div className="mt-5 grid gap-4 sm:grid-cols-2">{[['apelido', 'Apelido'], ['destinatario', 'Destinatário'], ['cep', 'CEP'], ['rua', 'Rua'], ['numero', 'Número'], ['complemento', 'Complemento'], ['bairro', 'Bairro'], ['cidade', 'Cidade'], ['estado', 'Estado']].map(([key, label]) => <label key={key} className="text-sm font-semibold">{label}<input required={key !== 'complemento'} name={key} value={newAddress[key]} onChange={(event) => setNewAddress({ ...newAddress, [key]: event.target.value })} className={inputClass} /></label>)}</div><label className="mt-5 flex items-center gap-3 text-sm font-semibold"><input name="principal" type="checkbox" checked={newAddress.principal} onChange={(event) => setNewAddress({ ...newAddress, principal: event.target.checked })} className="h-4 w-4 accent-[#F5C518]" />Definir como principal</label><button disabled={savingAddress} className="button-primary mt-5 disabled:opacity-70">{savingAddress && <LoaderCircle size={15} className="animate-spin" />}Salvar endereço</button></form>}
         </section>
         <section className="glass rounded-2xl p-6 sm:p-7">
+          <p className="eyebrow">Frete</p><h2 className="text-xl font-extrabold">MODALIDADE DE ENTREGA</h2>
+          {shippingState === 'idle' && <p className="mt-5 text-sm text-zinc-400">Selecione um endereço para calcular o frete.</p>}
+          {shippingState === 'loading' && <p role="status" className="mt-5 flex items-center gap-2 text-sm text-zinc-300"><LoaderCircle size={16} className="animate-spin text-brand"/>Calculando com o endereço e os itens do carrinho...</p>}
+          {(shippingState === 'error' || shippingState === 'unavailable') && <div role="alert" className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">{shippingError || 'Nenhuma modalidade está disponível para este pedido.'}</div>}
+          {shippingState === 'ready' && <div className="mt-5 grid gap-3">{shippingQuotes.map((quote) => <button key={`${quote.provider}:${quote.service}`} type="button" onClick={() => { resetPaymentAttempt(); setShippingService(quote.service); }} className={`flex items-center justify-between gap-4 rounded-xl border p-4 text-left ${shippingService === quote.service ? 'border-brand bg-brand/10' : 'border-white/10 hover:border-white/30'}`}><span className="flex items-center gap-3"><Truck size={19} className="text-brand"/><span><strong className="block text-sm">{quote.serviceName}</strong><span className="text-xs text-zinc-400">{quote.estimatedDaysMin && quote.estimatedDaysMax ? `${quote.estimatedDaysMin} a ${quote.estimatedDaysMax} dias úteis` : 'Prazo informado após a confirmação'}</span></span></span><strong className="text-sm text-brand">{quote.amountCents === 0 ? 'Grátis' : formatCartPrice(quote.amountCents)}</strong></button>)}</div>}
+          <p className="mt-4 text-xs text-zinc-500">O valor é recalculado com segurança no servidor ao criar o pedido.</p>
+        </section>
+        <section className="glass rounded-2xl p-6 sm:p-7">
           <p className="eyebrow">Pagamento</p><h2 className="text-xl font-extrabold">FORMA DE PAGAMENTO</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">{paymentMethods.map(([value, label]) => <button type="button" key={value} onClick={() => selectPaymentMethod(value)} aria-pressed={paymentMethod === value} className={`rounded-xl border p-4 text-sm font-bold transition ${paymentMethod === value ? 'border-brand bg-brand text-ink' : 'border-white/10 text-zinc-300 hover:border-brand'}`}><CreditCard size={17} className="mx-auto mb-2" />{label}</button>)}</div>
-          {isTransparent && paymentMethod === 'mercado_pago_cartao' && <MercadoPagoCardBrick amount={subtotalCents / 100} publicKey={mercadoPagoPublicKey} onSubmit={submitTransparentCard}/>}
+          {isTransparent && paymentMethod === 'mercado_pago_cartao' && <MercadoPagoCardBrick amount={totalCents / 100} publicKey={mercadoPagoPublicKey} onSubmit={submitTransparentCard}/>}
           <label className="mt-6 block text-sm font-semibold">Observações <span className="font-normal text-zinc-500">(opcional)</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} rows={3} className={inputClass} placeholder="Alguma informação para a entrega?" /></label>
         </section>
       </div>
       <aside className="rounded-2xl border border-white/10 bg-white/[.04] p-6 lg:sticky lg:top-24">
         <h2 className="text-lg font-extrabold">RESUMO DO PEDIDO</h2>
         <ul className="mt-5 divide-y divide-white/10">{items.map((item) => <li key={item.key} className="flex gap-3 py-4"><div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-900">{item.image && <Image src={item.image} alt={item.name} fill sizes="56px" className="object-contain" />}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold">{item.name}</p><p className="mt-1 text-xs text-zinc-500">{[item.selectedSize && `Tam. ${item.selectedSize}`, item.selectedColor && `Cor ${item.selectedColor}`, `${item.quantity} un.`].filter(Boolean).join(' · ')}</p><p className="mt-1 text-sm font-extrabold text-brand">{formatCartPrice(item.price_cents * item.quantity)}</p></div></li>)}</ul>
-        <dl className="mt-4 space-y-3 border-t border-white/10 pt-5 text-sm"><div className="flex justify-between"><dt className="text-zinc-400">Subtotal</dt><dd>{formatCartPrice(subtotalCents)}</dd></div><div className="flex justify-between"><dt className="text-zinc-400">Frete</dt><dd>R$ 0,00</dd></div><div className="flex justify-between"><dt className="text-zinc-400">Desconto</dt><dd>R$ 0,00</dd></div><div className="flex justify-between border-t border-white/10 pt-4 text-base font-extrabold"><dt>Total</dt><dd className="text-brand">{formatCartPrice(subtotalCents)}</dd></div></dl>
+        <dl className="mt-4 space-y-3 border-t border-white/10 pt-5 text-sm"><div className="flex justify-between"><dt className="text-zinc-400">Subtotal</dt><dd>{formatCartPrice(subtotalCents)}</dd></div><div className="flex justify-between"><dt className="text-zinc-400">Frete</dt><dd>{shippingState === 'loading' ? 'Calculando...' : selectedShipping ? (selectedShipping.amountCents === 0 ? 'Grátis' : formatCartPrice(selectedShipping.amountCents)) : '—'}</dd></div><div className="flex justify-between"><dt className="text-zinc-400">Desconto</dt><dd>R$ 0,00</dd></div><div className="flex justify-between border-t border-white/10 pt-4 text-base font-extrabold"><dt>Total</dt><dd className="text-brand">{formatCartPrice(totalCents)}</dd></div></dl>
         {error && <p role="alert" aria-live="polite" className="mt-5 rounded-lg border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</p>}
         {!(isTransparent && paymentMethod === 'mercado_pago_cartao') && <button type="button" disabled={submitting} onClick={submitOrder} className="button-primary mt-6 w-full disabled:cursor-not-allowed disabled:opacity-70">{submitting && <LoaderCircle size={16} className="animate-spin" />}{submitting ? (isMercadoPago ? 'Processando com o Mercado Pago...' : 'Finalizando...') : 'Confirmar pedido'}</button>}
       </aside>

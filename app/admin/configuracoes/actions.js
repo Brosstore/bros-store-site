@@ -32,6 +32,15 @@ function optionalText(formData, field, maxLength) {
   return value;
 }
 
+function optionalNonNegativeInteger(formData, field, multiplier = 1) {
+  const value = text(formData, field).replace(',', '.');
+  if (!value) return null;
+  const number = Number(value);
+  const result = Math.round(number * multiplier);
+  if (!Number.isFinite(number) || number < 0 || !Number.isSafeInteger(result)) throw new Error(`O campo ${field} possui valor inválido.`);
+  return result;
+}
+
 function validateHomeUrl(value, field) {
   if (!value) return null;
   if (value.length > 500) throw new Error(`A URL de ${field} excede o limite de 500 caracteres.`);
@@ -101,6 +110,12 @@ export async function saveStoreSettings(formData) {
       pix_receiver_name: text(formData, 'pixReceiverName') || null,
       pix_city: text(formData, 'pixCity') || null,
       pix_instructions: text(formData, 'pixInstructions') || null,
+      shipping_manual_enabled: formData.get('shippingManualEnabled') === 'on',
+      shipping_manual_service_name: text(formData, 'shippingManualServiceName') || 'Entrega padrão',
+      shipping_manual_amount_cents: optionalNonNegativeInteger(formData, 'shippingManualAmount', 100) || 0,
+      shipping_manual_free_threshold_cents: optionalNonNegativeInteger(formData, 'shippingManualFreeThreshold', 100),
+      shipping_manual_estimated_days_min: optionalNonNegativeInteger(formData, 'shippingManualEstimatedDaysMin'),
+      shipping_manual_estimated_days_max: optionalNonNegativeInteger(formData, 'shippingManualEstimatedDaysMax'),
     };
     if (hasHomeContent) {
       Object.assign(values, {
@@ -115,6 +130,7 @@ export async function saveStoreSettings(formData) {
       });
     }
     if (!values.description || !values.whatsapp || !values.email) throw new Error('Preencha nome, slogan, descrição, WhatsApp e e-mail.');
+    if (values.shipping_manual_estimated_days_min === 0 || values.shipping_manual_estimated_days_max === 0 || (values.shipping_manual_estimated_days_min && values.shipping_manual_estimated_days_max && values.shipping_manual_estimated_days_max < values.shipping_manual_estimated_days_min)) throw new Error('Informe um prazo de frete válido.');
 
     const supabase = await requireAdmin();
     if (hasHomeContent) await assertHomeContentColumns(supabase);

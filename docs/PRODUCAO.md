@@ -1,5 +1,9 @@
 # Operação de produção — Bros Store
 
+## Frete
+
+A migration `202608060001_add_universal_shipping.sql` adiciona o fallback manual, os detalhes de frete no pedido e o recálculo transacional no servidor. Depois de aplicá-la, configure **Admin > Configurações > Frete manual** e valide uma cotação no checkout. O padrão preserva o frete grátis existente e não inventa prazo. Consulte `docs/FRETE.md` antes de conectar uma transportadora.
+
 ## Ambientes e domínio
 
 - Produção: `https://bros-store-site.vercel.app` (domínio gratuito da Vercel).

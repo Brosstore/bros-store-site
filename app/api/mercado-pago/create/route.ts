@@ -23,6 +23,7 @@ type CreatePaymentBody = {
   items: CheckoutItemInput[];
   paymentMethod: string;
   idempotencyKey: string;
+  shippingService: string;
 };
 
 type PreferenceResponse = {
@@ -48,7 +49,7 @@ function parseBody(value: unknown): CreatePaymentBody | null {
     return null;
   }
 
-  if (typeof value.paymentMethod !== 'string' || !ONLINE_PAYMENT_METHODS.has(value.paymentMethod) || !Array.isArray(value.items)) {
+  if (typeof value.paymentMethod !== 'string' || !ONLINE_PAYMENT_METHODS.has(value.paymentMethod) || value.shippingService !== 'manual-standard' || !Array.isArray(value.items)) {
     return null;
   }
 
@@ -83,6 +84,7 @@ function parseBody(value: unknown): CreatePaymentBody | null {
     items: items as CheckoutItemInput[],
     paymentMethod: value.paymentMethod,
     idempotencyKey: value.idempotencyKey,
+    shippingService: value.shippingService,
   };
 }
 
@@ -177,6 +179,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
     p_items: body.items,
     p_idempotency_key: body.idempotencyKey,
     p_payment_method: body.paymentMethod,
+    p_shipping_service: body.shippingService,
   });
 
   if (rpcError) {
@@ -196,7 +199,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
   const orderNumber = Number(paymentAttempt.order_number);
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select('id, order_number, total, order_items(product_id, product_name, unit_price, quantity, subtotal)')
+    .select('id, order_number, total, shipping, shipping_service_name, order_items(product_id, product_name, unit_price, quantity, subtotal)')
     .eq('id', orderId)
     .eq('customer_id', authData.user.id)
     .maybeSingle();
@@ -235,13 +238,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preferenc
 
     const result = await preference.create({
       body: {
-        items: order.order_items.map((item) => ({
+        items: [...order.order_items.map((item) => ({
           id: item.product_id,
           title: item.product_name,
           quantity: item.quantity,
           unit_price: Number(item.unit_price) / 100,
           currency_id: 'BRL',
-        })),
+        })), ...(Number(order.shipping) > 0 ? [{ id: 'shipping', title: order.shipping_service_name || 'Frete', quantity: 1, unit_price: Number(order.shipping) / 100, currency_id: 'BRL' as const }] : [])],
         external_reference: orderId,
         metadata: {
           order_id: orderId,

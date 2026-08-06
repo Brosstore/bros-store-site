@@ -11,7 +11,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 type CheckoutItemInput = { productId: string; selectedSize?: string; selectedColor?: string; quantity: number };
 type CardInput = { token: string; paymentMethodId: string; paymentTypeId: string; installments: number; identification?: { type: string; number: string } };
-type OrderBody = { addressId: string; notes?: string; items: CheckoutItemInput[]; paymentMethod: string; idempotencyKey: string; card?: CardInput };
+type OrderBody = { addressId: string; notes?: string; items: CheckoutItemInput[]; paymentMethod: string; idempotencyKey: string; shippingService: string; card?: CardInput };
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 function text(value: unknown, maxLength: number) { return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''; }
@@ -33,7 +33,7 @@ function parseCard(value: unknown): CardInput | null {
 function parseBody(value: unknown): OrderBody | null {
   if (!isRecord(value) || !UUID_PATTERN.test(text(value.addressId, 36)) || !UUID_PATTERN.test(text(value.idempotencyKey, 36))) return null;
   const paymentMethod = text(value.paymentMethod, 50);
-  if (!ONLINE_PAYMENT_METHODS.has(paymentMethod) || !Array.isArray(value.items) || !value.items.length || value.items.length > 50) return null;
+  if (!ONLINE_PAYMENT_METHODS.has(paymentMethod) || value.shippingService !== 'manual-standard' || !Array.isArray(value.items) || !value.items.length || value.items.length > 50) return null;
   const items = value.items.map((item) => {
     if (!isRecord(item) || !UUID_PATTERN.test(text(item.productId, 36)) || typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) return null;
     return { productId: text(item.productId, 36), selectedSize: text(item.selectedSize, 100), selectedColor: text(item.selectedColor, 100), quantity: item.quantity };
@@ -41,7 +41,7 @@ function parseBody(value: unknown): OrderBody | null {
   if (items.some((item) => item === null)) return null;
   const card = paymentMethod === 'mercado_pago_cartao' ? parseCard(value.card) : undefined;
   if (paymentMethod === 'mercado_pago_cartao' && !card) return null;
-  return { addressId: text(value.addressId, 36), idempotencyKey: text(value.idempotencyKey, 36), notes: text(value.notes, 1000), paymentMethod, items: items as CheckoutItemInput[], card: card || undefined };
+  return { addressId: text(value.addressId, 36), idempotencyKey: text(value.idempotencyKey, 36), notes: text(value.notes, 1000), paymentMethod, shippingService: value.shippingService, items: items as CheckoutItemInput[], card: card || undefined };
 }
 
 function adminClient() {
@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
   const { data: rpcData, error: rpcError } = await supabase.rpc('start_mercado_pago_order', {
     p_address_id: body.addressId, p_notes: body.notes || '', p_items: body.items,
     p_idempotency_key: body.idempotencyKey, p_payment_method: body.paymentMethod,
+    p_shipping_service: body.shippingService,
   });
   if (rpcError) return clientError('Não foi possível iniciar o pagamento.', rpcError.code === '28000' || rpcError.code === '42501' ? 401 : 400);
   const attemptStart = Array.isArray(rpcData) ? rpcData[0] : rpcData;

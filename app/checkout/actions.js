@@ -25,7 +25,8 @@ export async function finalizeOrder(input) {
     if (!input.items.length || input.items.length > 50) throw new Error('Seu carrinho está vazio ou possui itens inválidos.');
     const items = input.items.map((item) => ({ productId: typeof item?.productId === 'string' ? item.productId : '', selectedSize: typeof item?.selectedSize === 'string' ? item.selectedSize : '', selectedColor: typeof item?.selectedColor === 'string' ? item.selectedColor : '', quantity: Number(item?.quantity) }));
     if (items.some((item) => !item.productId || !Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 99)) throw new Error('Há uma quantidade ou produto inválido no carrinho.');
-    const { data, error } = await supabase.rpc('create_customer_order', { p_address_id: input.addressId, p_payment_method: input.paymentMethod, p_notes: typeof input.notes === 'string' ? input.notes.slice(0, 1000) : '', p_items: items });
+    if (input.shippingService !== 'manual-standard') throw new Error('Selecione uma modalidade de entrega válida.');
+    const { data, error } = await supabase.rpc('create_customer_order', { p_address_id: input.addressId, p_payment_method: input.paymentMethod, p_notes: typeof input.notes === 'string' ? input.notes.slice(0, 1000) : '', p_items: items, p_shipping_service: input.shippingService });
     if (error) throw new Error(error.message || 'Não foi possível finalizar o pedido.');
     const order = Array.isArray(data) ? data[0] : data;
     if (!order?.order_id) throw new Error('Não foi possível confirmar o pedido.');
