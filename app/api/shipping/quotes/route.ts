@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
+import { quoteMelhorEnvio } from '../../../../lib/shipping/melhor-envio-server';
 
 type Item = { productId: string; selectedSize?: string; selectedColor?: string; quantity: number };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -28,5 +29,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: status === 503 ? 'O frete está temporariamente indisponível.' : error.message }, { status });
   }
   const quotes = (Array.isArray(data) ? data : []).map((quote) => ({ provider: quote.provider, service: quote.service, serviceName: quote.service_name, amountCents: Number(quote.amount_cents), estimatedDaysMin: quote.estimated_days_min, estimatedDaysMax: quote.estimated_days_max, metadata: quote.metadata || {} }));
+  const [{data:address},{data:settings},{data:products}]=await Promise.all([supabase.from('addresses').select('cep').eq('id',body.addressId).eq('user_id',user.id).maybeSingle(),supabase.from('store_settings').select('shipping_melhor_envio_enabled,shipping_origin_postal_code,shipping_default_weight_grams,shipping_default_length_cm,shipping_default_width_cm,shipping_default_height_cm').eq('id',true).maybeSingle(),supabase.from('products').select('id,price_cents').in('id',body.items.map(item=>item.productId))]);
+  if(settings?.shipping_melhor_envio_enabled&&address&&products?.length===new Set(body.items.map(i=>i.productId)).size){try{quotes.push(...await quoteMelhorEnvio({customerId:user.id,addressId:body.addressId,items:body.items,destinationPostalCode:String(address.cep).replace(/\D/g,''),settings,products}));}catch(error){console.warn('[shipping] Melhor Envio indisponível',{code:error instanceof Error?error.message:'UNKNOWN'});}}
   return NextResponse.json({ quotes }, { headers: { 'Cache-Control': 'no-store' } });
 }

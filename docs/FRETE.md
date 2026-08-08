@@ -12,6 +12,10 @@ Configure em **Admin > Configurações > Frete manual**. O pedido guarda provedo
 
 ## Adicionando um provedor externo
 
+### Melhor Envio
+
+Configure `MELHOR_ENVIO_CLIENT_ID`, `MELHOR_ENVIO_CLIENT_SECRET` e `SHIPPING_TOKEN_ENCRYPTION_KEY` somente no servidor. Um administrador acessa `/api/shipping/melhor-envio/authorize`. Tokens OAuth são criptografados antes de persistidos, renovados automaticamente e nunca enviados ao navegador. Cotações externas expiram em 15 minutos e são consumidas uma única vez pela RPC transacional.
+
 1. Implemente `ShippingProvider` em `lib/shipping/providers` e normalize a resposta.
 2. Guarde tokens somente no servidor.
 3. Adicione timeout, limite de concorrência e erros normalizados à rota agregadora.

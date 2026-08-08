@@ -1,0 +1,4 @@
+const test=require('node:test'); const assert=require('node:assert/strict'); const u=require('../lib/shipping/melhor-envio.cjs');
+test('criptografa credenciais com autenticação',()=>{const c=u.encrypt('token-secreto','chave-forte');assert.notEqual(c,'token-secreto');assert.equal(u.decrypt(c,'chave-forte'),'token-secreto');assert.throws(()=>u.decrypt(c,'outra-chave'));});
+test('normaliza preço customizado em centavos e ignora erros',()=>{const q=u.normalizeQuotes([{id:1,name:'PAC',custom_price:'19.90',custom_delivery_time:5,company:{name:'Correios'}},{id:2,error:'indisponível'}]);assert.deepEqual(q[0],{provider:'melhor_envio',service:'melhor-envio:1',externalServiceId:'1',serviceName:'Correios · PAC',amountCents:1990,estimatedDaysMin:5,estimatedDaysMax:5,metadata:{company:'Correios',service:'PAC',custom_price:'19.90'}});assert.equal(q.length,1);});
+test('exige configuração secreta completa',()=>assert.throws(()=>u.config({}),{code:'CONFIGURATION_ERROR'}));

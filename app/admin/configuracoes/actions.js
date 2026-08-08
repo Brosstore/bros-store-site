@@ -116,6 +116,11 @@ export async function saveStoreSettings(formData) {
       shipping_manual_free_threshold_cents: optionalNonNegativeInteger(formData, 'shippingManualFreeThreshold', 100),
       shipping_manual_estimated_days_min: optionalNonNegativeInteger(formData, 'shippingManualEstimatedDaysMin'),
       shipping_manual_estimated_days_max: optionalNonNegativeInteger(formData, 'shippingManualEstimatedDaysMax'),
+      shipping_origin_postal_code: text(formData, 'shippingOriginPostalCode').replace(/\D/g, ''),
+      shipping_default_weight_grams: optionalNonNegativeInteger(formData, 'shippingDefaultWeightGrams'),
+      shipping_default_length_cm: optionalNonNegativeInteger(formData, 'shippingDefaultLengthCm'),
+      shipping_default_width_cm: optionalNonNegativeInteger(formData, 'shippingDefaultWidthCm'),
+      shipping_default_height_cm: optionalNonNegativeInteger(formData, 'shippingDefaultHeightCm'),
     };
     if (hasHomeContent) {
       Object.assign(values, {
@@ -131,6 +136,7 @@ export async function saveStoreSettings(formData) {
     }
     if (!values.description || !values.whatsapp || !values.email) throw new Error('Preencha nome, slogan, descrição, WhatsApp e e-mail.');
     if (values.shipping_manual_estimated_days_min === 0 || values.shipping_manual_estimated_days_max === 0 || (values.shipping_manual_estimated_days_min && values.shipping_manual_estimated_days_max && values.shipping_manual_estimated_days_max < values.shipping_manual_estimated_days_min)) throw new Error('Informe um prazo de frete válido.');
+    if (!/^\d{8}$/.test(values.shipping_origin_postal_code) || !values.shipping_default_weight_grams || !values.shipping_default_length_cm || !values.shipping_default_width_cm || !values.shipping_default_height_cm) throw new Error('Informe CEP, peso e dimensões válidos para o Melhor Envio.');
 
     const supabase = await requireAdmin();
     if (hasHomeContent) await assertHomeContentColumns(supabase);
