@@ -23,13 +23,32 @@ export async function POST(request: NextRequest) {
   const supabase = createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Sua sessão expirou. Entre novamente.' }, { status: 401 });
-  const { data, error } = await supabase.rpc('calculate_customer_shipping', { p_address_id: body.addressId, p_items: body.items, p_shipping_service: 'manual-standard' });
-  if (error) {
-    const status = error.code === '28000' || error.code === '42501' ? 401 : error.code === '22023' ? 400 : 503;
-    return NextResponse.json({ error: status === 503 ? 'O frete está temporariamente indisponível.' : error.message }, { status });
+
+  const [{ data: address }, { data: settings }, { data: products }] = await Promise.all([
+    supabase.from('addresses').select('cep').eq('id', body.addressId).eq('user_id', user.id).maybeSingle(),
+    supabase.from('store_settings').select('shipping_manual_enabled,shipping_melhor_envio_enabled,shipping_origin_postal_code,shipping_default_weight_grams,shipping_default_length_cm,shipping_default_width_cm,shipping_default_height_cm').eq('id', true).maybeSingle(),
+    supabase.from('products').select('id,price_cents').in('id', body.items.map((item) => item.productId)),
+  ]);
+
+  const completeProducts = products?.length === new Set(body.items.map((item) => item.productId)).size;
+  if (settings?.shipping_melhor_envio_enabled && address && completeProducts) {
+    try {
+      const quotes = await quoteMelhorEnvio({ customerId: user.id, addressId: body.addressId, items: body.items, destinationPostalCode: String(address.cep).replace(/\D/g, ''), settings, products });
+      if (quotes.length) return NextResponse.json({ quotes }, { headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
+      console.warn('[shipping] Melhor Envio indisponível', { code: error instanceof Error ? error.message : 'UNKNOWN' });
+    }
   }
-  const quotes = (Array.isArray(data) ? data : []).map((quote) => ({ provider: quote.provider, service: quote.service, serviceName: quote.service_name, amountCents: Number(quote.amount_cents), estimatedDaysMin: quote.estimated_days_min, estimatedDaysMax: quote.estimated_days_max, metadata: quote.metadata || {} }));
-  const [{data:address},{data:settings},{data:products}]=await Promise.all([supabase.from('addresses').select('cep').eq('id',body.addressId).eq('user_id',user.id).maybeSingle(),supabase.from('store_settings').select('shipping_melhor_envio_enabled,shipping_origin_postal_code,shipping_default_weight_grams,shipping_default_length_cm,shipping_default_width_cm,shipping_default_height_cm').eq('id',true).maybeSingle(),supabase.from('products').select('id,price_cents').in('id',body.items.map(item=>item.productId))]);
-  if(settings?.shipping_melhor_envio_enabled&&address&&products?.length===new Set(body.items.map(i=>i.productId)).size){try{const externalQuotes=await quoteMelhorEnvio({customerId:user.id,addressId:body.addressId,items:body.items,destinationPostalCode:String(address.cep).replace(/\D/g,''),settings,products});if(externalQuotes.length)quotes.splice(0,quotes.length,...externalQuotes);}catch(error){console.warn('[shipping] Melhor Envio indisponível',{code:error instanceof Error?error.message:'UNKNOWN'});}}
-  return NextResponse.json({ quotes }, { headers: { 'Cache-Control': 'no-store' } });
+
+  if (settings?.shipping_manual_enabled) {
+    const { data, error } = await supabase.rpc('calculate_customer_shipping', { p_address_id: body.addressId, p_items: body.items, p_shipping_service: 'manual-standard' });
+    if (!error) {
+      const quotes = (Array.isArray(data) ? data : []).map((quote) => ({ provider: quote.provider, service: quote.service, serviceName: quote.service_name, amountCents: Number(quote.amount_cents), estimatedDaysMin: quote.estimated_days_min, estimatedDaysMax: quote.estimated_days_max, metadata: quote.metadata || {} }));
+      if (quotes.length) return NextResponse.json({ quotes }, { headers: { 'Cache-Control': 'no-store' } });
+    } else {
+      console.warn('[shipping] fallback manual indisponível', { code: error.code || 'UNKNOWN' });
+    }
+  }
+
+  return NextResponse.json({ error: 'O frete está temporariamente indisponível.' }, { status: 503 });
 }
