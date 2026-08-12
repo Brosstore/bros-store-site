@@ -121,6 +121,18 @@ export async function saveStoreSettings(formData) {
       shipping_default_length_cm: optionalNonNegativeInteger(formData, 'shippingDefaultLengthCm'),
       shipping_default_width_cm: optionalNonNegativeInteger(formData, 'shippingDefaultWidthCm'),
       shipping_default_height_cm: optionalNonNegativeInteger(formData, 'shippingDefaultHeightCm'),
+      shipping_sender_name: optionalText(formData, 'shippingSenderName', 100),
+      shipping_sender_phone: text(formData, 'shippingSenderPhone').replace(/\D/g, '') || null,
+      shipping_sender_document: text(formData, 'shippingSenderDocument').replace(/\D/g, '') || null,
+      shipping_sender_company_document: text(formData, 'shippingSenderCompanyDocument').replace(/\D/g, '') || null,
+      shipping_sender_state_register: optionalText(formData, 'shippingSenderStateRegister', 30),
+      shipping_sender_address: optionalText(formData, 'shippingSenderAddress', 150),
+      shipping_sender_number: optionalText(formData, 'shippingSenderNumber', 20),
+      shipping_sender_complement: optionalText(formData, 'shippingSenderComplement', 80),
+      shipping_sender_district: optionalText(formData, 'shippingSenderDistrict', 80),
+      shipping_sender_city: optionalText(formData, 'shippingSenderCity', 80),
+      shipping_sender_state: text(formData, 'shippingSenderState').toUpperCase() || null,
+      shipping_content_declaration_enabled: formData.get('shippingContentDeclarationEnabled') === 'on',
     };
     if (hasHomeContent) {
       Object.assign(values, {
@@ -137,6 +149,7 @@ export async function saveStoreSettings(formData) {
     if (!values.description || !values.whatsapp || !values.email) throw new Error('Preencha nome, slogan, descrição, WhatsApp e e-mail.');
     if (values.shipping_manual_estimated_days_min === 0 || values.shipping_manual_estimated_days_max === 0 || (values.shipping_manual_estimated_days_min && values.shipping_manual_estimated_days_max && values.shipping_manual_estimated_days_max < values.shipping_manual_estimated_days_min)) throw new Error('Informe um prazo de frete válido.');
     if (!/^\d{8}$/.test(values.shipping_origin_postal_code) || !values.shipping_default_weight_grams || !values.shipping_default_length_cm || !values.shipping_default_width_cm || !values.shipping_default_height_cm) throw new Error('Informe CEP, peso e dimensões válidos para o Melhor Envio.');
+    if (values.shipping_sender_state && !/^[A-Z]{2}$/.test(values.shipping_sender_state)) throw new Error('Informe a UF do remetente com duas letras.');
 
     const supabase = await requireAdmin();
     if (hasHomeContent) await assertHomeContentColumns(supabase);

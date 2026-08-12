@@ -1,2 +1,2 @@
-const labels={novo:'Novo',confirmado:'Confirmado',em_preparo:'Em preparo',saiu_para_entrega:'Saiu para entrega',entregue:'Entregue',cancelado:'Cancelado'};
+const labels={novo:'Novo',confirmado:'Confirmado',em_preparo:'Em preparo',pronto_para_envio:'Pronto para envio',enviado:'Enviado',saiu_para_entrega:'Saiu para entrega',entregue:'Entregue',cancelado:'Cancelado'};
 export default function OrderStatusBadge({status}){const tone=status==='cancelado'?'border-red-400/30 bg-red-400/10 text-red-200':status==='entregue'?'border-emerald-400/30 bg-emerald-400/10 text-emerald-200':'border-brand/30 bg-brand/10 text-brand';return <span className={`rounded-full border px-3 py-1 text-xs font-bold ${tone}`}>{labels[status]||status}</span>;}
